@@ -1,0 +1,86 @@
+﻿body.login-body {
+    background-color: #212121;
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.admin-top-right {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #ccc;
+    text-decoration: none;
+    font-size: 18px;
+}
+
+.login-container {
+    text-align: center;
+    width: 350px;
+}
+
+.main-title {
+    font-size: 48px;
+    margin-bottom: 40px;
+}
+
+.role-badge {
+    background-color: #534bae;
+    padding: 10px 20px;
+    border-radius: 25px;
+    display: inline-block;
+    margin-bottom: 30px;
+}
+
+.role-item {
+    cursor: pointer;
+    opacity: 0.6;
+    padding: 0 10px;
+}
+
+    .role-item.active {
+        opacity: 1;
+        font-weight: bold;
+    }
+
+.input-group {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+    .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 18px;
+    }
+
+    .input-group input {
+        width: 100%;
+        padding: 12px;
+        border-radius: 10px;
+        border: none;
+        background-color: #9e9e9e;
+        color: black;
+    }
+
+.login-btn {
+    background-color: #534bae;
+    color: white;
+    border: none;
+    padding: 12px 50px;
+    border-radius: 25px;
+    font-size: 18px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.forgot-pwd {
+    margin-top: 15px;
+    color: #ccc;
+    font-size: 14px;
+    cursor: pointer;
+}

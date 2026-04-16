@@ -1,0 +1,72 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Login - Aloka</title>
+    <link rel="stylesheet" href="~/css/login.css" />
+</head>
+<body class="login-body">
+
+    <a asp-action="Login" class="admin-top-right" onclick="setRole('Admin')">Admin</a>
+
+    <div class="login-container">
+        <h1 class="main-title">Sign in</h1>
+
+        <form asp-action="Login" method="post">
+            <div class="role-badge">
+                <span id="role-student" class="role-item active" onclick="setRole('Student')">Student</span>
+                <span class="divider">|</span>
+                <span id="role-supervisor" class="role-item" onclick="setRole('Supervisor')">Supervisor</span>
+            </div>
+
+            <input type="hidden" name="role" id="selectedRole" value="Student" />
+
+            <div class="input-group">
+                <label>Email</label>
+                <input type="email" name="email" placeholder="Enter your email" required />
+            </div>
+
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter your password" required />
+            </div>
+
+            @if (ViewBag.ErrorMessage != null)
+            {
+                <p style="color: #ff6b6b; font-size: 14px; margin-bottom: 10px;">@ViewBag.ErrorMessage</p>
+            }
+
+            <button type="submit" class="login-btn">Login</button>
+
+            <p class="forgot-pwd-wrapper">
+                <a asp-action="ForgetPassword" class="forgot-pwd">Forget Password</a>
+            </p>
+        </form>
+    </div>
+
+    <script>
+        function setRole(role) {
+            document.getElementById('selectedRole').value = role;
+
+            // Visual toggle for Student/Supervisor
+            const studentBtn = document.getElementById('role-student');
+            const supervisorBtn = document.getElementById('role-supervisor');
+
+            if (role === 'Student') {
+                studentBtn.classList.add('active');
+                supervisorBtn.classList.remove('active');
+            } else if (role === 'Supervisor') {
+                supervisorBtn.classList.add('active');
+                studentBtn.classList.remove('active');
+            } else if (role === 'Admin') {
+                // For Admin, we just highlight both or handle separately
+                alert("Admin access selected. Please login with admin credentials.");
+            }
+        }
+    </script>
+</body>
+</html>
