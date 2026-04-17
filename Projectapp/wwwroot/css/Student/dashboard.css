@@ -1,0 +1,31 @@
+﻿body {
+    background-color: #333;
+    color: white;
+    padding: 20px;
+    font-family: sans-serif;
+}
+
+.welcome-card {
+    background-color: #666;
+    padding: 40px;
+    border-radius: 30px;
+    margin-bottom: 20px;
+}
+
+.btn-purple {
+    background-color: #5c59b6;
+    color: white !important;
+    border-radius: 20px;
+    padding: 8px 20px;
+    border: none;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.project-card {
+    background-color: #aaa;
+    color: #000;
+    padding: 20px;
+    border-radius: 20px;
+    margin-bottom: 15px;
+}
