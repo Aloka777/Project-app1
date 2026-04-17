@@ -19,7 +19,7 @@ namespace Projectapp.Controllers
             if (email == "aloka@gmail.com" && password == "123")
             {
                 // Successful login redirects to the Home page
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Dashboard", "Admin");
             }
 
             // If login fails

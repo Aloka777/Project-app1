@@ -1,23 +1,25 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
 
 namespace Projectapp.Models
 {
-    public class ApplicationUser
+    public class ApplicationUser : IdentityUser
     {
-        [Key]
-        public int Id { get; set; }
-
         [Required]
         public string FullName { get; set; } = string.Empty;
 
         [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = "Student"; // Admin, Student, or Supervisor
 
-        [Required]
-        public string Password { get; set; } = string.Empty;
+        // Student Specific Fields
+        public string? IndexNumber { get; set; }
+        public string? Batch { get; set; }
 
-        [Required]
-        public string Role { get; set; } = string.Empty; // Admin, Student, Supervisor
+        // Supervisor Specific Fields
+        public string? AcademicId { get; set; }
+        public string? Faculty { get; set; }
+
+        // Shared Field
+        public string? Degree { get; set; }
     }
 }
