@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Projectapp.Models; // This lets the bridge see your ProjectProposal file
+using Projectapp.Models; 
 
 namespace Projectapp.Data
 {
@@ -10,7 +10,7 @@ namespace Projectapp.Data
         {
         }
 
-        // This line creates the "ProjectProposals" table in SQL
+       
         public DbSet<ProjectProposal> ProjectProposals { get; set; }
 
         public DbSet<ApplicationUser> Users { get; set; }
