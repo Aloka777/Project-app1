@@ -68,7 +68,7 @@ namespace Projectapp.Controllers
             return RedirectToAction("ManageAccounts", new { role = newUser.Role });
         }
 
-        // --- MANAGE KEYWORDS (LOAD PAGE WITH FILTER) ---
+        // --- MANAGE KEYWORDS ---
         public IActionResult ManageKeywords(string faculty = "IOT")
         {
             var keywords = _context.Keywords
@@ -114,6 +114,12 @@ namespace Projectapp.Controllers
             }
 
             return RedirectToAction("ManageKeywords");
+        }
+
+        // --- UPDATE PROJECT ---
+        public IActionResult UpdateProject()
+        {
+            return View();
         }
     }
 }
