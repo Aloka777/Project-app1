@@ -18,22 +18,18 @@ namespace Projectapp.Controllers
         // --- DASHBOARD (PROJECT CARDS) ---
         public IActionResult Dashboard(string faculty, string subject, string sortBy)
         {
-            // 1. Start with all projects from the database
             var projectsQuery = _context.ProjectProposals.AsQueryable();
 
-            // 2. Apply Faculty Filter
             if (!string.IsNullOrEmpty(faculty) && faculty != "All")
             {
                 projectsQuery = projectsQuery.Where(p => p.Faculty == faculty);
             }
 
-            // 3. Apply Subject Filter (Optional for now)
             if (!string.IsNullOrEmpty(subject))
             {
                 projectsQuery = projectsQuery.Where(p => p.Subject.Contains(subject));
             }
 
-            // 4. Apply Sorting
             if (sortBy == "name")
             {
                 projectsQuery = projectsQuery.OrderBy(p => p.Title);
@@ -43,7 +39,6 @@ namespace Projectapp.Controllers
                 projectsQuery = projectsQuery.OrderByDescending(p => p.DateCreated);
             }
 
-            // 5. Convert to list and send to the View
             var projectsList = projectsQuery.ToList();
             return View(projectsList);
         }
@@ -51,7 +46,6 @@ namespace Projectapp.Controllers
         // --- MANAGE ACCOUNTS ---
         public IActionResult ManageAccounts(string role = "Student")
         {
-            // Fetch users based on the role (Student or Supervisor)
             var users = _context.Users
                                 .Where(u => u.Role == role)
                                 .ToList() ?? new List<ApplicationUser>();
@@ -70,7 +64,14 @@ namespace Projectapp.Controllers
                 _context.Users.Add(newUser);
                 _context.SaveChanges();
             }
+
             return RedirectToAction("ManageAccounts", new { role = newUser.Role });
+        }
+
+        // --- MANAGE KEYWORDS ---
+        public IActionResult ManageKeywords()
+        {
+            return View();
         }
     }
 }
