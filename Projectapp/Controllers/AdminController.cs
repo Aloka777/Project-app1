@@ -68,10 +68,52 @@ namespace Projectapp.Controllers
             return RedirectToAction("ManageAccounts", new { role = newUser.Role });
         }
 
-        // --- MANAGE KEYWORDS ---
-        public IActionResult ManageKeywords()
+        // --- MANAGE KEYWORDS (LOAD PAGE WITH FILTER) ---
+        public IActionResult ManageKeywords(string faculty = "IOT")
         {
-            return View();
+            var keywords = _context.Keywords
+                                   .Where(k => k.Faculty == faculty)
+                                   .ToList();
+
+            ViewBag.Faculty = faculty;
+            return View(keywords);
+        }
+
+        // --- ADD KEYWORD ---
+        [HttpPost]
+        public IActionResult AddKeyword(string name, string faculty)
+        {
+            if (!string.IsNullOrEmpty(name))
+            {
+                var newKeyword = new Keyword
+                {
+                    Name = name,
+                    Faculty = faculty
+                };
+
+                _context.Keywords.Add(newKeyword);
+                _context.SaveChanges();
+            }
+
+            return RedirectToAction("ManageKeywords", new { faculty = faculty });
+        }
+
+        // --- DELETE KEYWORD ---
+        public IActionResult DeleteKeyword(int id)
+        {
+            var keyword = _context.Keywords.Find(id);
+
+            if (keyword != null)
+            {
+                string faculty = keyword.Faculty;
+
+                _context.Keywords.Remove(keyword);
+                _context.SaveChanges();
+
+                return RedirectToAction("ManageKeywords", new { faculty = faculty });
+            }
+
+            return RedirectToAction("ManageKeywords");
         }
     }
 }

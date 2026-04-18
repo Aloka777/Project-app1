@@ -1,5 +1,7 @@
-﻿@{
+﻿@model IEnumerable<Projectapp.Models.Keyword>
+@{
     Layout = null;
+    var currentFaculty = ViewBag.Faculty ?? "IOT";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -16,7 +18,6 @@
             padding: 40px;
         }
 
-        /* Top Navigation Bar */
         .header-card {
             background-color: #616161;
             border-radius: 25px;
@@ -24,7 +25,6 @@
             margin-bottom: 25px;
         }
 
-        /* Main Gray Box */
         .main-section {
             background-color: #616161;
             border-radius: 30px;
@@ -32,7 +32,6 @@
             min-height: 500px;
         }
 
-        /* Input Container */
         .input-container {
             background-color: #9e9e9e;
             border-radius: 20px;
@@ -66,7 +65,6 @@
             font-weight: bold;
         }
 
-        /* Purple Keyword Tags */
         .tag {
             background-color: #5e4bb6;
             color: white;
@@ -84,9 +82,10 @@
                 cursor: pointer;
                 font-weight: bold;
                 font-size: 1.2rem;
+                color: white;
+                text-decoration: none;
             }
 
-        /* Sidebar Faculty Styling */
         .sidebar-card {
             background-color: #9e9e9e;
             border-radius: 30px;
@@ -127,21 +126,30 @@
 
     <div class="header-card">
         <h2 class="fw-bold m-0">
-            <a href="/Admin/Dashboard" class="no-style">&lt; <span id="facultyTitle">IOT</span></a>
+            <a href="/Admin/Dashboard" class="no-style">&lt; <span id="facultyTitle">@currentFaculty</span></a>
         </h2>
     </div>
 
     <div class="row">
         <div class="col-md-8">
             <div class="main-section">
-                <div class="input-container">
-                    <input type="text" id="kwInput" class="keyword-input" placeholder="Add Keyword">
-                    <button class="btn-add" onclick="addKeyword()">+ ADD</button>
-                </div>
+                <form asp-action="AddKeyword" method="post" class="input-container">
+                    <input type="hidden" name="faculty" id="hiddenFaculty" value="@currentFaculty" />
+                    <input type="text" name="name" class="keyword-input" placeholder="Add Keyword" required>
+                    <button type="submit" class="btn-add">+ ADD</button>
+                </form>
 
                 <div id="tagsContainer">
-                    <div class="tag">Iot <span class="remove-btn" onclick="this.parentElement.remove()">×</span></div>
-                    <div class="tag">circuits <span class="remove-btn" onclick="this.parentElement.remove()">×</span></div>
+                    @if (Model != null)
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <div class="tag">
+                                @item.Name
+                                <a href="@Url.Action("DeleteKeyword", new { id = item.Id })" class="remove-btn">×</a>
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </div>
@@ -151,53 +159,29 @@
                 <h4 class="fw-bold mb-4">Faculty</h4>
 
                 <button class="faculty-btn" onclick="updateTitle('BUSINESS')" data-bs-toggle="collapse" data-bs-target="#busList">Business</button>
-                <div class="collapse sub-list" id="busList">
-                    • Business Analytics<br>• Accounting & Finance
-                </div>
+                <div class="collapse sub-list" id="busList">Business Analytics<br>Accounting & Finance</div>
 
                 <button class="faculty-btn" onclick="updateTitle('COMPUTING')" data-bs-toggle="collapse" data-bs-target="#compList">Computing</button>
-                <div class="collapse show sub-list" id="compList">
-                    • IoT<br>• AI<br>• Data Science<br>• Software Engineering
-                </div>
+                <div class="collapse show sub-list" id="compList">IoT<br>AI<br>Data Science<br>Software Engineering</div>
 
                 <button class="faculty-btn" onclick="updateTitle('ENGINEERING')" data-bs-toggle="collapse" data-bs-target="#engList">Engineering</button>
-                <div class="collapse sub-list" id="engList">
-                    • Mechatronic Engineering<br>• Electrical Systems
-                </div>
+                <div class="collapse sub-list" id="engList">Mechatronic Engineering<br>Electrical Systems</div>
 
                 <button class="faculty-btn" onclick="updateTitle('SCIENCE')" data-bs-toggle="collapse" data-bs-target="#sciList">Science</button>
-                <div class="collapse sub-list" id="sciList">
-                    • Psychology<br>• Biomedical Science
-                </div>
+                <div class="collapse sub-list" id="sciList">Psychology<br>Biomedical Science</div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Function to change the Top Title
         function updateTitle(name) {
             document.getElementById('facultyTitle').innerText = name;
+            document.getElementById('hiddenFaculty').value = name;
+
+            // This reloads the page for the new faculty
+            window.location.href = '/Admin/ManageKeywords?faculty=' + name;
         }
-
-        // Function to add a new tag
-        function addKeyword() {
-            const input = document.getElementById('kwInput');
-            const container = document.getElementById('tagsContainer');
-
-            if (input.value.trim() !== "") {
-                const newTag = document.createElement('div');
-                newTag.className = 'tag';
-                newTag.innerHTML = input.value + ' <span class="remove-btn" onclick="this.parentElement.remove()">×</span>';
-                container.appendChild(newTag);
-                input.value = "";
-            }
-        }
-
-        // Allow Enter key
-        document.getElementById('kwInput').addEventListener("keypress", function(e) {
-            if (e.key === "Enter") addKeyword();
-        });
     </script>
 </body>
 </html>
