@@ -12,8 +12,8 @@ using Projectapp.Data;
 namespace Projectapp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260417110358_InitialCreate_Restart")]
-    partial class InitialCreate_Restart
+    [Migration("20260419214525_ModelSync")]
+    partial class ModelSync
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Projectapp.Data;
 using Projectapp.Models;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Projectapp.Controllers
@@ -15,62 +14,59 @@ namespace Projectapp.Controllers
             _context = context;
         }
 
-        // --- DASHBOARD (PROJECT CARDS) ---
-        public IActionResult Dashboard(string faculty, string subject, string sortBy)
+        public IActionResult Dashboard(string faculty, string type, string subject)
         {
-            // 1. Start with all projects from the database
             var projectsQuery = _context.ProjectProposals.AsQueryable();
 
-            // 2. Apply Faculty Filter
             if (!string.IsNullOrEmpty(faculty) && faculty != "All")
             {
                 projectsQuery = projectsQuery.Where(p => p.Faculty == faculty);
             }
 
-            // 3. Apply Subject Filter (Optional for now)
             if (!string.IsNullOrEmpty(subject))
             {
-                projectsQuery = projectsQuery.Where(p => p.Subject.Contains(subject));
+                projectsQuery = projectsQuery.Where(p => p.Subject == subject);
             }
 
-            // 4. Apply Sorting
-            if (sortBy == "name")
+            if (!string.IsNullOrEmpty(type) && type != "All")
             {
-                projectsQuery = projectsQuery.OrderBy(p => p.Title);
-            }
-            else
-            {
-                projectsQuery = projectsQuery.OrderByDescending(p => p.DateCreated);
+                projectsQuery = projectsQuery.Where(p => p.Category == type);
             }
 
-            // 5. Convert to list and send to the View
-            var projectsList = projectsQuery.ToList();
+            var projectsList = projectsQuery.OrderByDescending(p => p.DateCreated).ToList();
             return View(projectsList);
         }
 
-        // --- MANAGE ACCOUNTS ---
         public IActionResult ManageAccounts(string role = "Student")
         {
-            // Fetch users based on the role (Student or Supervisor)
-            var users = _context.Users
-                                .Where(u => u.Role == role)
-                                .ToList() ?? new List<ApplicationUser>();
-
+            var users = _context.Users.Where(u => u.Role == role).ToList();
             ViewBag.SelectedRole = role;
-
             return View(users);
         }
 
-        // --- CREATE ACCOUNT ---
+        // --- NEW CREATE ACCOUNT METHOD ---
         [HttpPost]
         public IActionResult CreateAccount(ApplicationUser newUser)
         {
-            if (ModelState.IsValid)
+            if (newUser != null)
             {
+                // Identity framework requires a UserName. We'll use the Email.
+                newUser.UserName = newUser.Email;
+
+                // Ensure FullName is not null to satisfy your [Required] attribute
+                if (string.IsNullOrEmpty(newUser.FullName))
+                {
+                    newUser.FullName = "User"; // Fallback safety
+                }
+
                 _context.Users.Add(newUser);
                 _context.SaveChanges();
+
+                // Redirect back to the list of the role just created
+                return RedirectToAction("ManageAccounts", new { role = newUser.Role });
             }
-            return RedirectToAction("ManageAccounts", new { role = newUser.Role });
+
+            return RedirectToAction("ManageAccounts");
         }
     }
 }

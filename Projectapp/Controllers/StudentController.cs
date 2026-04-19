@@ -8,7 +8,6 @@ namespace Projectapp.Controllers
     {
         public IActionResult Index()
         {
-            
             var projects = new List<ProjectViewModel>
             {
                 new ProjectViewModel { Title = "Housing meter", Group = "69", Category = "IOT", Status = "Pending", Description = "cascmnksnvkndljkbnsdm..." },
@@ -17,7 +16,14 @@ namespace Projectapp.Controllers
             return View(projects);
         }
 
-        public IActionResult CreateProject() => View();
-        public IActionResult ProjectDetails() => View();
+        public IActionResult CreateProject()
+        {
+            return View();
+        }
+
+        public IActionResult ProjectDetails()
+        {
+            return View();
+        }
     }
 }
