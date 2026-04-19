@@ -29,5 +29,20 @@ namespace Projectapp.Controllers
         {
             return View();
         }
+
+
+        // Action to view specific project details
+        public IActionResult ProjectDetails(int id)
+        {
+            return View();
+        }
+
+        // Action for the Supervisor's My Account page
+        public IActionResult MyAccount()
+        {
+            return View();
+        }
+
+
     }
 }
