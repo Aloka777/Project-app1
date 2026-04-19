@@ -10,7 +10,6 @@ namespace Projectapp.Data
         {
         }
 
-       
         public DbSet<ProjectProposal> ProjectProposals { get; set; }
 
         public DbSet<ApplicationUser> Users { get; set; }

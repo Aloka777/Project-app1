@@ -1,8 +1,7 @@
-﻿@model Projectapp.Models.ProjectProposal
+﻿@model Projectapp.Models.ProjectViewModel
 @{
     Layout = null;
 }
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,6 +9,44 @@
     <title>Create Project</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="~/css/Student/create-project.css" asp-append-version="true" />
+    <style>
+        .custom-input input, .custom-input textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+            outline: none;
+            color: inherit;
+            padding: 0 10px;
+        }
+
+        .student-chip {
+            background: #666;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 15px;
+            margin: 2px;
+            display: inline-block;
+            font-size: 0.8rem;
+        }
+
+        #studentContainer {
+            overflow-y: auto;
+            padding: 10px;
+            display: none;
+        }
+
+ 
+        #fileNameDisplay {
+            font-size: 0.9rem;
+            color: #555;
+            padding-left: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 80%;
+        }
+    </style>
 </head>
 <body>
     <form asp-action="CreateProject" method="post" enctype="multipart/form-data">
@@ -20,63 +57,57 @@
             </div>
 
             <div class="form-container shadow-lg">
-                <label asp-for="Title">Project Title</label>
-                <div class="custom-input">
-                    <input asp-for="Title" class="form-control-plaintext px-3" placeholder="Enter project title" required />
-                </div>
+                <label>Project Title</label>
+                <div class="custom-input"><input type="text" asp-for="Title" required /></div>
 
                 <div class="d-flex align-items-center mb-3 px-3">
                     <span style="color: #000; font-weight: 500; margin-right: 20px;">Type</span>
                     <span class="me-3" style="color: #000;">
-                        Individual <input type="radio" asp-for="ProjectType" value="Individual" class="form-check-input ms-1" checked onclick="toggleGroupAdd(false)">
+                        Individual <input type="radio" asp-for="Group" value="Individual" id="typeInd" class="form-check-input ms-1" checked>
                     </span>
                     <span style="color: #000;">
-                        Group <input type="radio" asp-for="ProjectType" value="Group" class="form-check-input ms-1" onclick="toggleGroupAdd(true)">
+                        Group <input type="radio" asp-for="Group" value="Group" id="typeGroup" class="form-check-input ms-1">
                     </span>
                 </div>
 
-                <div id="groupSection" class="custom-input d-flex flex-column p-2" style="height: auto; min-height: 100px; display:none !important;">
-                    <div id="memberList" class="d-flex flex-wrap gap-2 mb-2"></div>
-                    <div class="mt-auto d-flex justify-content-end">
-                        <button type="button" class="btn fw-bold text-dark border-0" onclick="addMember()">+ADD Member ID</button>
+                <div class="custom-input d-flex flex-column align-items-end" style="height: 100px; position: relative;">
+                    <div id="studentList" class="w-100 px-2" style="flex-grow: 1;"></div>
+                    <div id="studentInputArea" style="display: none; width: 100%;" class="px-2">
+                        <input type="text" id="studentName" placeholder="Enter Student Name..." style="width: 70%; border-bottom: 1px solid #000;">
+                        <button type="button" onclick="addStudent()" class="btn btn-sm btn-dark">+ADD</button>
                     </div>
                 </div>
-                <input type="hidden" asp-for="GroupName" id="hiddenGroupMembers" />
 
-                <label asp-for="ResearchArea">Research Area</label>
-                <div class="custom-input">
-                    <select asp-for="ResearchArea" class="form-select border-0 bg-transparent" required>
-                        <option value="">Select Research Area</option>
-                        <option value="IOT">IOT</option>
-                        <option value="AI">Artificial Intelligence</option>
-                        <option value="Web">Web Development</option>
-                        <option value="Mobile">Mobile Computing</option>
-                    </select>
+                <label>Research Area</label>
+                <div class="custom-input d-flex justify-content-end align-items-center">
+                    <input type="text" asp-for="ResearchArea" />
+                    <span style="font-weight: bold;">v</span>
                 </div>
 
-                <label asp-for="TechnicalStack">Technical Stack</label>
-                <div class="custom-input">
-                    <input asp-for="TechnicalStack" class="form-control-plaintext px-3" placeholder="e.g. C#, Flutter, Firebase" required />
-                </div>
+                <label>Technical Stack</label>
+                <div class="custom-input"><input type="text" asp-for="TechnicalStack" /></div>
 
-                <label asp-for="Abstract">Abstract</label>
+                <label>Abstract</label>
                 <div class="custom-input" style="height: 100px;">
-                    <textarea asp-for="Abstract" class="form-control-plaintext px-3 h-100" placeholder="Describe your project..."></textarea>
+                    <textarea asp-for="Description"></textarea>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6">
                         <label>Upload your Proposal</label>
-                        <div class="custom-input d-flex align-items-center justify-content-center" style="height: 100px; cursor: pointer;" onclick="document.getElementById('proposalFile').click();">
-                            <input type="file" name="proposalFile" id="proposalFile" style="display:none;" onchange="updateFileName(this)" />
-                            <span id="fileStatus" class="text-muted text-center">Click to Browse File</span>
+                        <div class="custom-input d-flex align-items-center justify-content-between"
+                             style="height: 100px; cursor: pointer;"
+                             onclick="document.getElementById('proposalFile').click()">
+
+                            <span id="fileNameDisplay">Click to upload...</span>
+                            <b class="pe-3">Edit</b>
+
+                            <input type="file" id="proposalFile" name="proposalFile" style="display: none;" onchange="displayFileName(this)" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <label>Add Keywords</label>
-                        <div class="custom-input" style="height: 100px;">
-                            <input type="text" name="Keywords" class="form-control-plaintext px-3" placeholder="e.g. Automation, Cloud, Security" />
-                        </div>
+                        <div class="custom-input" style="height: 100px;"><input type="text" asp-for="Category" /></div>
                     </div>
                 </div>
             </div>
@@ -84,32 +115,42 @@
     </form>
 
     <script>
-        function toggleGroupAdd(show) {
-            const section = document.getElementById('groupSection');
-            section.style.setProperty('display', show ? 'flex' : 'none', 'important');
-        }
+        const typeGroup = document.getElementById('typeGroup');
+        const typeInd = document.getElementById('typeInd');
+        const inputArea = document.getElementById('studentInputArea');
+        const studentList = document.getElementById('studentList');
 
-        let members = [];
-        function addMember() {
-            const id = prompt("Enter Student ID:");
-            if (id) {
-                members.push(id);
-                updateMemberList();
+        function toggleStudentInput() {
+            if (typeGroup.checked) {
+                inputArea.style.display = 'block';
+            } else {
+                inputArea.style.display = 'none';
+                studentList.innerHTML = '';
             }
         }
 
-        function updateMemberList() {
-            const list = document.getElementById('memberList');
-            const hiddenInput = document.getElementById('hiddenGroupMembers');
-            list.innerHTML = members.map(m => `<span class="badge bg-secondary p-2">${m}</span>`).join('');
-            hiddenInput.value = members.join(',');
+        typeGroup.addEventListener('change', toggleStudentInput);
+        typeInd.addEventListener('change', toggleStudentInput);
+
+        function addStudent() {
+            const nameInput = document.getElementById('studentName');
+            if (nameInput.value.trim() !== "") {
+                const chip = document.createElement('span');
+                chip.className = 'student-chip';
+                chip.innerText = nameInput.value;
+                studentList.appendChild(chip);
+                nameInput.value = "";
+            }
         }
 
-        function updateFileName(input) {
-            const status = document.getElementById('fileStatus');
-            if (input.files.length > 0) {
-                status.innerHTML = `<strong>Selected:</strong> ${input.files[0].name}`;
-                status.classList.remove('text-muted');
+        function displayFileName(input) {
+            const display = document.getElementById('fileNameDisplay');
+            if (input.files && input.files.length > 0) {
+                display.innerText = input.files[0].name;
+                display.style.color = "#000";
+            } else {
+                display.innerText = "Click to upload...";
+                display.style.color = "#555";
             }
         }
     </script>
