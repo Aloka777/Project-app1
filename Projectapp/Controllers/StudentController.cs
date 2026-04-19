@@ -8,7 +8,7 @@ namespace Projectapp.Controllers
     {
         public IActionResult Index()
         {
-            
+
             var projects = new List<ProjectViewModel>
             {
                 new ProjectViewModel { Title = "Housing meter", Group = "69", Category = "IOT", Status = "Pending", Description = "cascmnksnvkndljkbnsdm..." },

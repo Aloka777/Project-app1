@@ -1,6 +1,8 @@
-﻿@{
+﻿@model Projectapp.Models.ProjectProposal
+@{
     Layout = null;
 }
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,48 +12,106 @@
     <link rel="stylesheet" href="~/css/Student/create-project.css" asp-append-version="true" />
 </head>
 <body>
-    <div class="main-container">
-        <div class="header-card shadow">
-            <a href="@Url.Action("Index", "Student")" class="back-btn"> < Create Project </a>
-            <button class="btn btn-purple">Create</button>
-        </div>
-
-        <div class="form-container shadow-lg">
-            <label>Project Title</label>
-            <div class="custom-input"></div>
-
-            <div class="d-flex align-items-center mb-3 px-3">
-                <span style="color: #000; font-weight: 500; margin-right: 20px;">Type</span>
-                <span class="me-3" style="color: #000;">Individual <input type="radio" name="type" class="form-check-input ms-1"></span>
-                <span style="color: #000;">Group <input type="radio" name="type" class="form-check-input ms-1"></span>
+    <form asp-action="CreateProject" method="post" enctype="multipart/form-data">
+        <div class="main-container">
+            <div class="header-card shadow">
+                <a href="@Url.Action("Index", "Student")" class="back-btn"> < Create Project </a>
+                <button type="submit" class="btn btn-purple">Create</button>
             </div>
 
-            <div class="custom-input d-flex align-items-center justify-content-end" style="height: 100px;">
-                <div class="fw-bold">+ADD</div>
-            </div>
-
-            <label>Research Area</label>
-            <div class="custom-input d-flex justify-content-end align-items-center">
-                <span style="font-weight: bold;">v</span>
-            </div>
-
-            <label>Technical Stack</label>
-            <div class="custom-input"></div>
-
-            <label>Abstract</label>
-            <div class="custom-input" style="height: 100px;"></div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <label>Upload your Proposal</label>
-                    <div class="custom-input" style="height: 100px;"></div>
+            <div class="form-container shadow-lg">
+                <label asp-for="Title">Project Title</label>
+                <div class="custom-input">
+                    <input asp-for="Title" class="form-control-plaintext px-3" placeholder="Enter project title" required />
                 </div>
-                <div class="col-md-6">
-                    <label>Add Keywords</label>
-                    <div class="custom-input" style="height: 100px;"></div>
+
+                <div class="d-flex align-items-center mb-3 px-3">
+                    <span style="color: #000; font-weight: 500; margin-right: 20px;">Type</span>
+                    <span class="me-3" style="color: #000;">
+                        Individual <input type="radio" asp-for="ProjectType" value="Individual" class="form-check-input ms-1" checked onclick="toggleGroupAdd(false)">
+                    </span>
+                    <span style="color: #000;">
+                        Group <input type="radio" asp-for="ProjectType" value="Group" class="form-check-input ms-1" onclick="toggleGroupAdd(true)">
+                    </span>
+                </div>
+
+                <div id="groupSection" class="custom-input d-flex flex-column p-2" style="height: auto; min-height: 100px; display:none !important;">
+                    <div id="memberList" class="d-flex flex-wrap gap-2 mb-2"></div>
+                    <div class="mt-auto d-flex justify-content-end">
+                        <button type="button" class="btn fw-bold text-dark border-0" onclick="addMember()">+ADD Member ID</button>
+                    </div>
+                </div>
+                <input type="hidden" asp-for="GroupName" id="hiddenGroupMembers" />
+
+                <label asp-for="ResearchArea">Research Area</label>
+                <div class="custom-input">
+                    <select asp-for="ResearchArea" class="form-select border-0 bg-transparent" required>
+                        <option value="">Select Research Area</option>
+                        <option value="IOT">IOT</option>
+                        <option value="AI">Artificial Intelligence</option>
+                        <option value="Web">Web Development</option>
+                        <option value="Mobile">Mobile Computing</option>
+                    </select>
+                </div>
+
+                <label asp-for="TechnicalStack">Technical Stack</label>
+                <div class="custom-input">
+                    <input asp-for="TechnicalStack" class="form-control-plaintext px-3" placeholder="e.g. C#, Flutter, Firebase" required />
+                </div>
+
+                <label asp-for="Abstract">Abstract</label>
+                <div class="custom-input" style="height: 100px;">
+                    <textarea asp-for="Abstract" class="form-control-plaintext px-3 h-100" placeholder="Describe your project..."></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label>Upload your Proposal</label>
+                        <div class="custom-input d-flex align-items-center justify-content-center" style="height: 100px; cursor: pointer;" onclick="document.getElementById('proposalFile').click();">
+                            <input type="file" name="proposalFile" id="proposalFile" style="display:none;" onchange="updateFileName(this)" />
+                            <span id="fileStatus" class="text-muted text-center">Click to Browse File</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Add Keywords</label>
+                        <div class="custom-input" style="height: 100px;">
+                            <input type="text" name="Keywords" class="form-control-plaintext px-3" placeholder="e.g. Automation, Cloud, Security" />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
+
+    <script>
+        function toggleGroupAdd(show) {
+            const section = document.getElementById('groupSection');
+            section.style.setProperty('display', show ? 'flex' : 'none', 'important');
+        }
+
+        let members = [];
+        function addMember() {
+            const id = prompt("Enter Student ID:");
+            if (id) {
+                members.push(id);
+                updateMemberList();
+            }
+        }
+
+        function updateMemberList() {
+            const list = document.getElementById('memberList');
+            const hiddenInput = document.getElementById('hiddenGroupMembers');
+            list.innerHTML = members.map(m => `<span class="badge bg-secondary p-2">${m}</span>`).join('');
+            hiddenInput.value = members.join(',');
+        }
+
+        function updateFileName(input) {
+            const status = document.getElementById('fileStatus');
+            if (input.files.length > 0) {
+                status.innerHTML = `<strong>Selected:</strong> ${input.files[0].name}`;
+                status.classList.remove('text-muted');
+            }
+        }
+    </script>
 </body>
 </html>

@@ -1,4 +1,5 @@
-﻿@{
+﻿@model Projectapp.Models.ProjectProposal
+@{
     Layout = null;
 }
 <!DOCTYPE html>
@@ -6,51 +7,99 @@
 <head>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="~/css/Student/project-details.css" asp-append-version="true" />
+    <style>
+        .custom-input input, .custom-input select, .custom-input textarea {
+            width: 100%;
+            border: none;
+            background: transparent;
+            outline: none;
+            padding: 5px;
+        }
+
+        .custom-input {
+            display: flex;
+            align-items: center;
+            background-color: #e0e0e0; 
+            padding: 5px 15px;
+            margin-bottom: 15px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header-card">
-            <a href="@Url.Action("Index", "Student")" class="back-link"> &lt; Project</a>
-            <div>
-                <button class="btn-purple me-2">Save</button>
-                <button class="btn-purple" style="background-color: #4a47a3;">Withdraw</button>
-            </div>
-        </div>
+    <div class="container mt-4">
+        <form asp-controller="Student" asp-action="Edit" method="post" enctype="multipart/form-data">
+            <input type="hidden" asp-for="Id" />
 
-        <div class="form-box">
-            <label>Project Title</label>
-            <div class="custom-input"><span></span> <b>Edit</b></div>
-
-            <label>Research Area</label>
-            <div class="custom-input"><span></span> <b>v</b></div>
-
-            <label>Technical Stack</label>
-            <div class="custom-input"><span></span> <b>Edit</b></div>
-
-            <label>Abstract</label>
-            <div class="custom-input" style="height: 80px;"><span></span> <b>Edit</b></div>
-
-            <div class="row">
-                <div class="col-6">
-                    <label>Upload your Proposal</label>
-                    <div class="custom-input"><span></span> <b>Edit</b></div>
-                    <div class="mb-2 text-black" style="font-size: 0.9rem;">
-                        Type: &nbsp; Individual <input type="radio" name="t"> &nbsp; Group <input type="radio" name="t">
-                    </div>
-                    <div class="custom-input" style="height: 100px; align-items: flex-end; justify-content: flex-end;"><b>+ADD<br>Browse</b></div>
-                </div>
-                <div class="col-6">
-                    <label>Supervisor</label>
-                    <div class="custom-input" style="height: 180px; flex-direction: column; align-items: flex-start; justify-content: flex-start;">
-                        <span class="mb-1">Name:</span>
-                        <span class="mb-1">Faculty:</span>
-                        <span class="mb-1">Contact Number:</span>
-                        <span>Email:</span>
-                        <b style="align-self: flex-end; margin-top: auto;">Browse</b>
-                    </div>
+            <div class="header-card d-flex justify-content-between align-items-center mb-3">
+                <a href="@Url.Action("Index", "Student")" class="back-link text-decoration-none"> &lt; Project</a>
+                <div>
+                    <button type="submit" class="btn btn-primary" style="background-color: #6f42c1; border: none; border-radius: 20px; padding: 5px 25px;">Save</button>
+                    <button type="button" class="btn btn-secondary" style="background-color: #4a47a3; border: none; border-radius: 20px; padding: 5px 20px;">Withdraw</button>
                 </div>
             </div>
-        </div>
+
+            <div class="form-box p-4" style="background-color: #555; border-radius: 20px; color: white;">
+                <label asp-for="Title">Project Title</label>
+                <div class="custom-input">
+                    <input asp-for="Title" placeholder="Enter Title..." />
+                    <b style="color: black; cursor: pointer;">Edit</b>
+                </div>
+
+                <label asp-for="ResearchArea">Research Area</label>
+                <div class="custom-input">
+                    <select asp-for="ResearchArea">
+                        <option value="">Select Area</option>
+                        <option value="IOT">IOT</option>
+                        <option value="AI">AI</option>
+                        <option value="Web">Web Development</option>
+                    </select>
+                    <b style="color: black;"></b>
+                </div>
+
+                <label asp-for="TechnicalStack">Technical Stack</label>
+                <div class="custom-input">
+                    <input asp-for="TechnicalStack" placeholder="e.g. C#, Flutter..." />
+                    <b style="color: black; cursor: pointer;">Edit</b>
+                </div>
+
+                <label asp-for="Abstract">Abstract</label>
+                <div class="custom-input" style="height: 100px;">
+                    <textarea asp-for="Abstract" rows="3" placeholder="Enter abstract..."></textarea>
+                    <b style="color: black; cursor: pointer; align-self: flex-start; margin-top: 5px;">Edit</b>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label>Upload your Proposal</label>
+                        <div class="custom-input">
+                            <input type="text" id="fileNameDisplay" readonly placeholder="No file selected" />
+                            <b style="color: black; cursor: pointer;">Edit</b>
+                        </div>
+
+                        <div class="mb-3" style="font-size: 0.9rem;">
+                            Type: &nbsp;
+                            Individual <input type="radio" asp-for="ProjectType" value="Individual">
+                            &nbsp; Group <input type="radio" asp-for="ProjectType" value="Group">
+                        </div>
+
+                        <div class="custom-input" style="height: 120px; display: flex; flex-direction: column; justify-content: flex-end; align-items: flex-end; cursor: pointer;" onclick="document.getElementById('fileUpload').click();">
+                            <input type="file" id="fileUpload" name="proposalFile" style="display:none;" onchange="document.getElementById('fileNameDisplay').value = this.files[0].name;" />
+                            <b style="color: black; text-align: right;">+ADD<br>Browse</b>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label>Supervisor</label>
+                        <div class="custom-input" style="height: 200px; flex-direction: column; align-items: flex-start; justify-content: flex-start; color: black;">
+                            <p class="m-0">Name:</p>
+                            <p class="m-0">Faculty:</p>
+                            <p class="m-0">Contact Number:</p>
+                            <p class="m-0">Email:</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
     </div>
 </body>
 </html>
