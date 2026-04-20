@@ -1,0 +1,1466 @@
+﻿--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Program.cs
+--------------------------------------------------
+using Microsoft.EntityFrameworkCore;
+using Projectapp.Data;
+
+var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddControllersWithViews();
+
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+var app = builder.Build();
+
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+   
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Supervisor}/{action=Index}/{id?}");
+
+app.Run();
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Controllers\AccountController.cs
+--------------------------------------------------
+using Microsoft.AspNetCore.Mvc;
+
+namespace Projectapp.Controllers
+{
+    public class AccountController : Controller
+    {
+        // --- LOGIN SECTION ---
+
+        [HttpGet]
+        public IActionResult Login()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult Login(string email, string password, string role)
+        {
+            // Hardcoded credentials for Student, Supervisor, and Admin
+            if (email == "aloka@gmail.com" && password == "123")
+            {
+                // Successful login redirects to the Home page
+                return RedirectToAction("Dashboard", "Admin");
+            }
+
+            // If login fails
+            ViewBag.ErrorMessage = "Invalid email or password.";
+            return View();
+        }
+
+        // --- FORGET PASSWORD SECTION ---
+
+        [HttpGet]
+        public IActionResult ForgetPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult ForgetPassword(string email, string role)
+        {
+            // For now, we simulate sending an email
+            if (!string.IsNullOrEmpty(email))
+            {
+                ViewBag.Message = $"A reset link has been sent to {email} as a {role}.";
+            }
+            else
+            {
+                ViewBag.Error = "Please enter a valid email address.";
+            }
+
+            return View();
+        }
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Controllers\AdminController.cs
+--------------------------------------------------
+using Microsoft.AspNetCore.Mvc;
+using Projectapp.Data;
+using Projectapp.Models;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Projectapp.Controllers
+{
+    public class AdminController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+
+        public AdminController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        // --- DASHBOARD (PROJECT CARDS) ---
+        public IActionResult Dashboard(string faculty, string subject, string sortBy)
+        {
+            // 1. Start with all projects from the database
+            var projectsQuery = _context.ProjectProposals.AsQueryable();
+
+            // 2. Apply Faculty Filter
+            if (!string.IsNullOrEmpty(faculty) && faculty != "All")
+            {
+                projectsQuery = projectsQuery.Where(p => p.Faculty == faculty);
+            }
+
+            // 3. Apply Subject Filter (Optional for now)
+            if (!string.IsNullOrEmpty(subject))
+            {
+                projectsQuery = projectsQuery.Where(p => p.Subject.Contains(subject));
+            }
+
+            // 4. Apply Sorting
+            if (sortBy == "name")
+            {
+                projectsQuery = projectsQuery.OrderBy(p => p.Title);
+            }
+            else
+            {
+                projectsQuery = projectsQuery.OrderByDescending(p => p.DateCreated);
+            }
+
+            // 5. Convert to list and send to the View
+            var projectsList = projectsQuery.ToList();
+            return View(projectsList);
+        }
+
+        // --- MANAGE ACCOUNTS ---
+        public IActionResult ManageAccounts(string role = "Student")
+        {
+            // Fetch users based on the role (Student or Supervisor)
+            var users = _context.Users
+                                .Where(u => u.Role == role)
+                                .ToList() ?? new List<ApplicationUser>();
+
+            ViewBag.SelectedRole = role;
+
+            return View(users);
+        }
+
+        // --- CREATE ACCOUNT ---
+        [HttpPost]
+        public IActionResult CreateAccount(ApplicationUser newUser)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Users.Add(newUser);
+                _context.SaveChanges();
+            }
+            return RedirectToAction("ManageAccounts", new { role = newUser.Role });
+        }
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Controllers\HomeController.cs
+--------------------------------------------------
+using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Projectapp.Models;
+
+namespace Projectapp.Controllers
+{
+    public class HomeController : Controller
+    {
+        private readonly ILogger<HomeController> _logger;
+
+        public HomeController(ILogger<HomeController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Controllers\StudentController.cs
+--------------------------------------------------
+using Microsoft.AspNetCore.Mvc;
+using Projectapp.Models;
+using System.Collections.Generic;
+
+namespace Projectapp.Controllers
+{
+    public class StudentController : Controller
+    {
+        public IActionResult Index()
+        {
+            
+            var projects = new List<ProjectViewModel>
+            {
+                new ProjectViewModel { Title = "Housing meter", Group = "69", Category = "IOT", Status = "Pending", Description = "cascmnksnvkndljkbnsdm..." },
+                new ProjectViewModel { Title = "Monitoring system", Group = "individual", Category = "IOT", Status = "Matched", Description = "cascmnksnvkndljkbnsdm..." }
+            };
+            return View(projects);
+        }
+
+        public IActionResult CreateProject() => View();
+        public IActionResult ProjectDetails() => View();
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Controllers\SupervisorController.cs
+--------------------------------------------------
+using Microsoft.AspNetCore.Mvc;
+
+namespace Projectapp.Controllers
+{
+    public class SupervisorController : Controller
+    {
+        
+        public IActionResult Dashboard()
+        {
+            return View();
+        }
+
+        
+        [HttpPost]
+        public IActionResult FilterProjects(string sortBy, string area, string type)
+        {
+            
+            return RedirectToAction("Dashboard");
+        }
+
+        
+        public IActionResult AddToInterests(int id)
+        {
+            
+            return RedirectToAction("Dashboard");
+        }
+
+        public IActionResult Interests()
+        {
+            return View();
+        }
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Data\ApplicationDbContext.cs
+--------------------------------------------------
+using Microsoft.EntityFrameworkCore;
+using Projectapp.Models; // This lets the bridge see your ProjectProposal file
+
+namespace Projectapp.Data
+{
+    public class ApplicationDbContext : DbContext
+    {
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+            : base(options)
+        {
+        }
+
+        // This line creates the "ProjectProposals" table in SQL
+        public DbSet<ProjectProposal> ProjectProposals { get; set; }
+
+        public DbSet<ApplicationUser> Users { get; set; }
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Models\ApplicationUser.cs
+--------------------------------------------------
+using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
+
+namespace Projectapp.Models
+{
+    public class ApplicationUser : IdentityUser
+    {
+        [Required]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required]
+        public string Role { get; set; } = "Student"; // Admin, Student, or Supervisor
+
+        // Student Specific Fields
+        public string? IndexNumber { get; set; }
+        public string? Batch { get; set; }
+
+        // Supervisor Specific Fields
+        public string? AcademicId { get; set; }
+        public string? Faculty { get; set; }
+
+        // Shared Field
+        public string? Degree { get; set; }
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Models\ErrorViewModel.cs
+--------------------------------------------------
+namespace Projectapp.Models
+{
+    public class ErrorViewModel
+    {
+        public string? RequestId { get; set; }
+
+        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Models\ProjectProposal.cs
+--------------------------------------------------
+using System.ComponentModel.DataAnnotations;
+
+namespace Projectapp.Models
+{
+    public class ProjectProposal
+    {
+        [Key]
+        public int Id { get; set; }
+
+        public string Title { get; set; } = string.Empty;
+
+        // This fixes the 'Description' error
+        public string Description { get; set; } = string.Empty;
+
+        // This fixes the 'GroupName' error
+        public string GroupName { get; set; } = string.Empty;
+
+        // This fixes the 'Category' error
+        public string Category { get; set; } = string.Empty;
+
+        public string Status { get; set; } = "Unmatched";
+
+        // These fix the 'Faculty' and 'Subject' errors
+        public string Faculty { get; set; } = string.Empty;
+        public string Subject { get; set; } = string.Empty;
+
+        // This fixes the 'DateCreated' error
+        public DateTime DateCreated { get; set; } = DateTime.Now;
+
+       
+
+      
+
+        [Required]
+        public string Abstract { get; set; } = string.Empty;
+
+        [Required]
+        public string TechnicalStack { get; set; } = string.Empty;
+
+        [Required]
+        public string ResearchArea { get; set; } = string.Empty;
+
+    
+
+        // Adding the '?' makes these nullable (they can be empty)
+        public string? StudentName { get; set; }
+        public string? SupervisorName { get; set; }
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Models\ProjectViewModel.cs
+--------------------------------------------------
+namespace Projectapp.Models
+{
+    public class ProjectViewModel
+    {
+        public string Title { get; set; }
+        public string Group { get; set; }
+        public string Category { get; set; }
+        public string Description { get; set; }
+        public string Status { get; set; } 
+    }
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\_ViewImports.cshtml
+--------------------------------------------------
+@using Projectapp
+@using Projectapp.Models
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\_ViewStart.cshtml
+--------------------------------------------------
+@{
+    Layout = "_Layout";
+}
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Account\ForgetPassword.cshtml
+--------------------------------------------------
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Forget Password</title>
+    <link rel="stylesheet" href="~/css/login.css" />
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <h1 class="main-title">Forget Password</h1>
+
+        <form asp-action="ForgetPassword" method="post">
+            <div class="role-badge">
+                <span id="role-student" class="role-item active" onclick="setRole('Student')">Student</span>
+                <span class="divider">|</span>
+                <span id="role-supervisor" class="role-item" onclick="setRole('Supervisor')">Supervisor</span>
+            </div>
+
+            <input type="hidden" name="role" id="selectedRole" value="Student" />
+
+            <div class="input-group">
+                <label>Email</label>
+                <input type="email" name="email" required />
+            </div>
+
+            <button type="submit" class="login-btn">Send Email</button>
+
+            <p><a asp-action="Login" style="color: #ccc; text-decoration: none; font-size: 14px;">Back to Login</a></p>
+        </form>
+
+        @if (ViewBag.Message != null)
+        {
+            <p style="color: #4CAF50; margin-top: 20px;">@ViewBag.Message</p>
+        }
+    </div>
+
+    <script>
+        function setRole(role) {
+            document.getElementById('selectedRole').value = role;
+            document.getElementById('role-student').classList.remove('active');
+            document.getElementById('role-supervisor').classList.remove('active');
+            if(role === 'Student') document.getElementById('role-student').classList.add('active');
+            if(role === 'Supervisor') document.getElementById('role-supervisor').classList.add('active');
+        }
+    </script>
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Account\Login.cshtml
+--------------------------------------------------
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Login - Aloka</title>
+    <link rel="stylesheet" href="~/css/login.css" />
+</head>
+<body class="login-body">
+
+    <a asp-action="Login" class="admin-top-right" onclick="setRole('Admin')">Admin</a>
+
+    <div class="login-container">
+        <h1 class="main-title">Sign in</h1>
+
+        <form asp-action="Login" method="post">
+            <div class="role-badge">
+                <span id="role-student" class="role-item active" onclick="setRole('Student')">Student</span>
+                <span class="divider">|</span>
+                <span id="role-supervisor" class="role-item" onclick="setRole('Supervisor')">Supervisor</span>
+            </div>
+
+            <input type="hidden" name="role" id="selectedRole" value="Student" />
+
+            <div class="input-group">
+                <label>Email</label>
+                <input type="email" name="email" placeholder="Enter your email" required />
+            </div>
+
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Enter your password" required />
+            </div>
+
+            @if (ViewBag.ErrorMessage != null)
+            {
+                <p style="color: #ff6b6b; font-size: 14px; margin-bottom: 10px;">@ViewBag.ErrorMessage</p>
+            }
+
+            <button type="submit" class="login-btn">Login</button>
+
+            <p class="forgot-pwd-wrapper">
+                <a asp-action="ForgetPassword" class="forgot-pwd">Forget Password</a>
+            </p>
+        </form>
+    </div>
+
+    <script>
+        function setRole(role) {
+            document.getElementById('selectedRole').value = role;
+
+            // Visual toggle for Student/Supervisor
+            const studentBtn = document.getElementById('role-student');
+            const supervisorBtn = document.getElementById('role-supervisor');
+
+            if (role === 'Student') {
+                studentBtn.classList.add('active');
+                supervisorBtn.classList.remove('active');
+            } else if (role === 'Supervisor') {
+                supervisorBtn.classList.add('active');
+                studentBtn.classList.remove('active');
+            } else if (role === 'Admin') {
+                // For Admin, we just highlight both or handle separately
+                alert("Admin access selected. Please login with admin credentials.");
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Admin\Dashboard.cshtml
+--------------------------------------------------
+@model IEnumerable<Projectapp.Models.ProjectProposal>
+@{
+    Layout = null;
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .btn-purple {
+            background-color: #5e4bb6;
+            color: white;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+            .btn-purple:hover {
+                opacity: 0.8;
+                color: white;
+            }
+
+        .project-card {
+            background-color: #2c2c2c;
+            border-radius: 20px;
+            border: none;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        /* Side Nav Styling */
+        .faculty-sidebar {
+            background-color: #b0b0b0;
+            color: black;
+            border-radius: 25px;
+            padding: 25px;
+        }
+
+        .faculty-btn {
+            background-color: #5e4bb6;
+            color: white;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: left;
+            width: 100%;
+            border: none;
+            margin-bottom: 10px;
+        }
+
+        /* Filter Dropdown Styling */
+        .dropdown-menu {
+            background-color: #d1d1d1;
+            border-radius: 20px;
+            width: 280px;
+            border: none;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
+            padding: 20px;
+        }
+
+        .form-select, .form-control {
+            background-color: #a0a0a0;
+            border: none;
+            border-radius: 12px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid p-4">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 style="color: #6a5acd; font-weight: bold;">Admin</h2>
+            <a href="/Admin/ManageAccounts" class="btn btn-purple px-4">Manage Accounts</a>
+        </div>
+
+        <div class="p-5 mb-4" style="background-color: #2c2c2c; border-radius: 20px;">
+            <h1 class="display-3 fw-bold m-0">Welcome</h1>
+            <p class="text-secondary mt-2">@DateTime.Now.ToString("yyyy.MM.dd")</p>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-purple btn-sm px-4">All</button>
+                        <button class="btn btn-sm px-3" style="background-color: #3d3d3d; color: white; border-radius: 15px;">Unmatched</button>
+                        <button class="btn btn-sm px-3" style="background-color: #3d3d3d; color: white; border-radius: 15px;">Matched</button>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn btn-purple btn-sm px-4 dropdown-toggle" type="button" id="filterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                            Filter
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="filterBtn">
+                            <form asp-action="Dashboard" asp-controller="Admin" method="get">
+                                <h6 class="fw-bold mb-3">Filter by</h6>
+
+                                <label class="small fw-bold mb-1">Sort By</label>
+                                <select name="sortBy" class="form-select mb-3">
+                                    <option value="date">Date</option>
+                                    <option value="name">Name</option>
+                                </select>
+
+                                <label class="small fw-bold mb-1">Faculty</label>
+                                <select name="faculty" id="facultySelect" class="form-select mb-3">
+                                    <option value="All">All</option>
+                                    <option value="Computing">Computing</option>
+                                    <option value="Business">Business</option>
+                                    <option value="Engineering">Engineering</option>
+                                    <option value="Science">Science</option>
+                                </select>
+
+                                <label class="small fw-bold mb-1">Subject</label>
+                                <select name="subject" id="subjectSelect" class="form-select mb-4">
+                                    <option value="">-</option>
+                                </select>
+
+                                <button type="submit" class="btn btn-purple w-100 fw-bold">Apply Filter</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var project in Model)
+                    {
+                        <div class="card project-card">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h4 class="fw-bold mb-1">@project.Title</h4>
+                                        <p class="text-secondary mb-2">Group: @project.GroupName | Category: @project.Category</p>
+                                        <span class="badge @(project.Status == "Matched" ? "bg-success" : "bg-warning text-dark")" style="border-radius: 8px; padding: 6px 12px;">
+                                            @project.Status
+                                        </span>
+                                    </div>
+                                    <div class="text-end">
+                                        <p class="small text-secondary mb-1">@project.Faculty</p>
+                                        <p class="small text-secondary mb-3">@project.DateCreated.ToString("yyyy.MM.dd")</p>
+                                        <a href="/Admin/ProjectDetails/@project.Id" class="btn btn-purple btn-sm px-4">View Details</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center p-5" style="background-color: #2c2c2c; border-radius: 20px; border: 2px dashed #444;">
+                        <p class="text-secondary fs-5 m-0">No projects found matching this criteria.</p>
+                    </div>
+                }
+            </div>
+
+            <div class="col-lg-4">
+                <div class="faculty-sidebar">
+                    <h4 class="fw-bold mb-4">Faculty</h4>
+
+                    <div class="d-grid">
+                        <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#busList">
+                            Business <span class="float-end">▼</span>
+                        </button>
+                        <div class="collapse mb-3 ps-3 text-dark small" id="busList">
+                            • Business Analytics<br>• Tourism & Events<br>• Accounting & Finance<br>• HR Management
+                        </div>
+
+                        <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#compList">
+                            Computing <span class="float-end">▼</span>
+                        </button>
+                        <div class="collapse mb-3 ps-3 text-dark small" id="compList">
+                            • Computer Science<br>• Software Engineering<br>• Data Science<br>• Cyber Security
+                        </div>
+
+                        <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#engList">
+                            Engineering <span class="float-end">▼</span>
+                        </button>
+                        <div class="collapse mb-3 ps-3 text-dark small" id="engList">
+                            • Mechatronic Engineering<br>• Electrical Engineering<br>• Interior Design
+                        </div>
+
+                        <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#sciList">
+                            Science <span class="float-end">▼</span>
+                        </button>
+                        <div class="collapse mb-3 ps-3 text-dark small" id="sciList">
+                            • Psychology<br>• Biomedical Science
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const subjects = {
+            'Computing': ['Information Technology', 'Computer Science', 'Software Engineering', 'Data Science', 'Artificial Intelligence'],
+            'Business': ['Business Analytics', 'Accounting and Finance', 'Project Management', 'Human Resource Management'],
+            'Engineering': ['Mechatronic Engineering', 'Electrical Engineering', 'Interior Design'],
+            'Science': ['Psychology', 'Biomedical Science']
+        };
+
+        const facultySelect = document.getElementById('facultySelect');
+        const subjectSelect = document.getElementById('subjectSelect');
+
+        facultySelect.addEventListener('change', function() {
+            const selected = this.value;
+            subjectSelect.innerHTML = '<option value="">-</option>';
+
+            if (subjects[selected]) {
+                subjects[selected].forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.innerHTML = s;
+                    subjectSelect.appendChild(opt);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Admin\ManageAccounts.cshtml
+--------------------------------------------------
+@model IEnumerable<Projectapp.Models.ApplicationUser>
+@{
+    Layout = null;
+    var selectedRole = ViewBag.SelectedRole as string ?? "Student";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: sans-serif;
+            padding: 40px;
+        }
+
+        .main-card {
+            background-color: #2c2c2c;
+            border-radius: 25px;
+            padding: 30px;
+        }
+
+        .header-section {
+            background-color: #444;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .user-item {
+            background-color: #b0b0b0;
+            color: black;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .btn-purple {
+            background-color: #5e4bb6;
+            color: white;
+            border-radius: 15px;
+            border: none;
+        }
+
+        .tab-btn {
+            background-color: #4b3b9b;
+            color: white;
+            border-radius: 15px;
+            padding: 8px 25px;
+            border: none;
+            margin-right: 10px;
+            opacity: 0.6;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .tab-active {
+            opacity: 1;
+            border: 2px solid white;
+        }
+
+        .search-bar {
+            background-color: #b0b0b0;
+            border-radius: 15px;
+            border: none;
+            padding: 5px 20px;
+            width: 150px;
+        }
+
+        .empty-state {
+            background-color: #444;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px dashed #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-card">
+        <div class="header-section">
+            <h2 class="mb-3"><a href="/Admin/Dashboard" style="color: white; text-decoration: none;">&lt; Manage Accounts</a></h2>
+            <p class="text-secondary">@DateTime.Now.ToString("yyyy.MM.dd")</p>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex">
+                <a href="?role=Student" class="tab-btn @(selectedRole == "Student" ? "tab-active" : "")">Students</a>
+                <a href="?role=Supervisor" class="tab-btn @(selectedRole == "Supervisor" ? "tab-active" : "")">Supervisor</a>
+            </div>
+            <button class="btn btn-sm" style="background-color: #4b3b9b; color: white; border-radius: 15px; padding: 5px 20px;">Filter ▼</button>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <input type="text" class="search-bar" placeholder="Search">
+            <button class="btn btn-purple px-4" data-bs-toggle="modal" data-bs-target="#createModal">Create Account</button>
+        </div>
+
+        @* --- ADJUSTED FOREACH SECTION --- *@
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var user in Model)
+            {
+                <div class="user-item">
+                    @if (user.Role == "Student")
+                    {
+                        <p class="m-0"><strong>Student Name:</strong> @user.FullName</p>
+                        <p class="m-0 text-dark">Index Number: @user.IndexNumber</p>
+                        <p class="m-0 text-dark">Batch: @user.Batch</p>
+                    }
+                    else
+                    {
+                        <p class="m-0"><strong>Supervisor Name:</strong> @user.FullName</p>
+                        <p class="m-0 text-dark">Academic ID: @user.AcademicId</p>
+                        <p class="m-0 text-dark">Faculty: @user.Faculty</p>
+                    }
+                    <p class="m-0 text-dark">Degree: @user.Degree</p>
+                    <button class="btn btn-purple btn-sm" style="position: absolute; right: 20px; bottom: 20px;">Remove</button>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state">
+                <h4>No @selectedRole accounts found.</h4>
+                <p class="text-secondary">Click "Create Account" to add the first one!</p>
+            </div>
+        }
+    </div>
+
+    @* --- MODAL SECTION --- *@
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background-color: #2c2c2c; color: white; border-radius: 25px;">
+                <div class="modal-header" style="border-bottom: 1px solid #444;">
+                    <h5 class="modal-title" id="createModalLabel">Create New Account</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="CreateAccount" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="FullName" class="form-control shadow-none" style="background-color: #b0b0b0; border-radius: 10px;" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select name="Role" class="form-select shadow-none" style="background-color: #b0b0b0; border-radius: 10px;">
+                                <option value="Student">Student</option>
+                                <option value="Supervisor">Supervisor</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="Email" class="form-control shadow-none" style="background-color: #b0b0b0; border-radius: 10px;" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="PasswordHash" class="form-control shadow-none" style="background-color: #b0b0b0; border-radius: 10px;" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Degree / Faculty</label>
+                            <input type="text" name="Degree" class="form-control shadow-none" style="background-color: #b0b0b0; border-radius: 10px;">
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="border-top: 1px solid #444;">
+                        <button type="submit" class="btn btn-purple px-5">Save Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Home\Index.cshtml
+--------------------------------------------------
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Home\Privacy.cshtml
+--------------------------------------------------
+@{
+    ViewData["Title"] = "Privacy Policy";
+}
+<h1>@ViewData["Title"]</h1>
+
+<p>Use this page to detail your site's privacy policy.</p>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Shared\Error.cshtml
+--------------------------------------------------
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+}
+
+<h1 class="text-danger">Error.</h1>
+<h2 class="text-danger">An error occurred while processing your request.</h2>
+
+@if (Model.ShowRequestId)
+{
+    <p>
+        <strong>Request ID:</strong> <code>@Model.RequestId</code>
+    </p>
+}
+
+<h3>Development Mode</h3>
+<p>
+    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
+</p>
+<p>
+    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
+    It can result in displaying sensitive information from exceptions to end users.
+    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
+    and restarting the app.
+</p>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Shared\_Layout.cshtml
+--------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Projectapp</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Projectapp.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Projectapp</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2026 - Projectapp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Shared\_ValidationScriptsPartial.cshtml
+--------------------------------------------------
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\CreateProject.cshtml
+--------------------------------------------------
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Create Project</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/css/Student/create-project.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="main-container">
+        <div class="header-card shadow">
+            <a href="@Url.Action("Index", "Student")" class="back-btn"> < Create Project </a>
+            <button class="btn btn-purple">Create</button>
+        </div>
+
+        <div class="form-container shadow-lg">
+            <label>Project Title</label>
+            <div class="custom-input"></div>
+
+            <div class="d-flex align-items-center mb-3 px-3">
+                <span style="color: #000; font-weight: 500; margin-right: 20px;">Type</span>
+                <span class="me-3" style="color: #000;">Individual <input type="radio" name="type" class="form-check-input ms-1"></span>
+                <span style="color: #000;">Group <input type="radio" name="type" class="form-check-input ms-1"></span>
+            </div>
+
+            <div class="custom-input d-flex align-items-center justify-content-end" style="height: 100px;">
+                <div class="fw-bold">+ADD</div>
+            </div>
+
+            <label>Research Area</label>
+            <div class="custom-input d-flex justify-content-end align-items-center">
+                <span style="font-weight: bold;">v</span>
+            </div>
+
+            <label>Technical Stack</label>
+            <div class="custom-input"></div>
+
+            <label>Abstract</label>
+            <div class="custom-input" style="height: 100px;"></div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <label>Upload your Proposal</label>
+                    <div class="custom-input" style="height: 100px;"></div>
+                </div>
+                <div class="col-md-6">
+                    <label>Add Keywords</label>
+                    <div class="custom-input" style="height: 100px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.cshtml
+--------------------------------------------------
+@model IEnumerable<Projectapp.Models.ProjectViewModel>
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/css/Student/dashboard.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="container">
+        <div class="welcome-card">
+            <div class="d-flex justify-content-between">
+                <h1 class="display-5">Welcome</h1>
+                <button class="btn-purple">Account</button>
+            </div>
+            <p>2026.04.17</p>
+        </div>
+
+        <div class="mb-4 d-flex justify-content-between">
+            <div>
+                <a href="@Url.Action("ProjectDetails", "Student")" class="btn-purple me-2">Projects</a>
+                <a href="@Url.Action("CreateProject", "Student")" class="btn-purple">+ Create Project</a>
+            </div>
+            <button class="btn-purple">Filter &nbsp; ▾</button>
+        </div>
+
+        <div style="background-color: #444; padding: 25px; border-radius: 30px;">
+            @if (Model != null)
+            {
+                @foreach (var item in Model)
+                {
+                    <div class="project-card">
+                        <div class="d-flex justify-content-between">
+                            <strong>Project: @item.Title</strong>
+                            <span class="btn-purple" style="font-size: 0.8rem;">@item.Status</span>
+                        </div>
+                        <div>Group: @item.Group</div>
+                        <div>Category: @item.Category</div>
+                        <div class="small mt-2">@item.Description</div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\ProjectDetails.cshtml
+--------------------------------------------------
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/css/Student/project-details.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="container">
+        <div class="header-card">
+            <a href="@Url.Action("Index", "Student")" class="back-link"> &lt; Project</a>
+            <div>
+                <button class="btn-purple me-2">Save</button>
+                <button class="btn-purple" style="background-color: #4a47a3;">Withdraw</button>
+            </div>
+        </div>
+
+        <div class="form-box">
+            <label>Project Title</label>
+            <div class="custom-input"><span></span> <b>Edit</b></div>
+
+            <label>Research Area</label>
+            <div class="custom-input"><span></span> <b>v</b></div>
+
+            <label>Technical Stack</label>
+            <div class="custom-input"><span></span> <b>Edit</b></div>
+
+            <label>Abstract</label>
+            <div class="custom-input" style="height: 80px;"><span></span> <b>Edit</b></div>
+
+            <div class="row">
+                <div class="col-6">
+                    <label>Upload your Proposal</label>
+                    <div class="custom-input"><span></span> <b>Edit</b></div>
+                    <div class="mb-2 text-black" style="font-size: 0.9rem;">
+                        Type: &nbsp; Individual <input type="radio" name="t"> &nbsp; Group <input type="radio" name="t">
+                    </div>
+                    <div class="custom-input" style="height: 100px; align-items: flex-end; justify-content: flex-end;"><b>+ADD<br>Browse</b></div>
+                </div>
+                <div class="col-6">
+                    <label>Supervisor</label>
+                    <div class="custom-input" style="height: 180px; flex-direction: column; align-items: flex-start; justify-content: flex-start;">
+                        <span class="mb-1">Name:</span>
+                        <span class="mb-1">Faculty:</span>
+                        <span class="mb-1">Contact Number:</span>
+                        <span>Email:</span>
+                        <b style="align-self: flex-end; margin-top: auto;">Browse</b>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Supervisor\Dashboard.cshtml
+--------------------------------------------------
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Supervisor Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #333333; color: white; font-family: sans-serif; padding: 20px; }
+        
+        /* Main Container */
+        .dashboard-card { background-color: #555555; border-radius: 30px; padding: 30px; margin-bottom: 20px; position: relative; }
+        
+        /* Buttons */
+        .btn-purple { background-color: #5b50b9; color: white; border-radius: 20px; padding: 10px 25px; border: none; }
+        .btn-purple:hover { background-color: #4a4099; color: white; }
+        .btn-add { background-color: #5b50b9; color: white; border-radius: 12px; width: 80px; float: right; }
+
+        /* Project Cards */
+        .project-list-container { background-color: #444444; border-radius: 30px; padding: 20px; }
+        .project-item { background-color: #cccccc; color: black; border-radius: 20px; padding: 15px; margin-bottom: 15px; }
+
+        /* Filter Dropdown/Modal */
+        .filter-box { 
+            display: none; position: absolute; right: 20px; top: 120px; 
+            background-color: #d1d1d1; color: black; border-radius: 25px; 
+            padding: 20px; width: 250px; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .filter-input { background-color: #a0a0a0; border: none; border-radius: 10px; margin-bottom: 10px; width: 100%; padding: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="dashboard-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold">Welcome</h1>
+                <p>2026.04.13</p>
+            </div>
+            <div>
+                <a href="/Supervisor/Interests" class="btn btn-purple me-2">Interests</a>
+                <a href="/Student/MyAccount" class="btn btn-purple">Account</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mb-3">
+        <button class="btn btn-purple">Projects</button>
+        <button class="btn btn-purple" onclick="toggleFilter()">Filter ⌵</button>
+    </div>
+
+    <div id="filterBox" class="filter-box">
+        <h6>Filter by ⌵</h6>
+        <p class="small mb-1">sort by ></p>
+        <input type="text" class="filter-input" placeholder="date">
+        <input type="text" class="filter-input" placeholder="A to Z">
+        <p class="small mb-1">Area ></p>
+        <input type="text" class="filter-input" placeholder="-">
+        <p class="small mb-1">Type ></p>
+        <input type="text" class="filter-input" placeholder="Individual">
+        <button class="btn btn-purple w-100" onclick="toggleFilter()">Filter</button>
+    </div>
+
+    <div class="project-list-container">
+        <div class="project-item">
+            <button class="btn btn-add">ADD</button>
+            <h5 class="fw-bold">Project: Housing meter</h5>
+            <p class="mb-0">Group: 69</p>
+            <p class="mb-0">Category: IOT</p>
+            <p class="small text-muted mt-2">Description: cascmknsknvkndljkbnsdm klscvkjdcnvlkfdsmn ksdcnj... </p>
+            <p class="small">Date: 2026.04.13</p>
+        </div>
+
+        <div class="project-item">
+            <button class="btn btn-add">ADD</button>
+            <h5 class="fw-bold">Project: Monitoring system</h5>
+            <p class="mb-0">Group: Individual</p>
+            <p class="mb-0">Category: IOT</p>
+            <p class="small text-muted mt-2">Description: cascmknsknvkndljkbnsdm klscvkjdcnvlkfdsmn ksdcnj... </p>
+            <p class="small">Date: 2026.04.12</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleFilter() {
+        var box = document.getElementById("filterBox");
+        box.style.display = (box.style.display === "block") ? "none" : "block";
+    }
+</script>
+
+</body>
+</html>
+
+
+--------------------------------------------------
+FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Supervisor\Interests.cshtml
+--------------------------------------------------
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interests</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #333333; color: white; font-family: sans-serif; padding: 40px; }
+        
+        /* Main Gray Container */
+        .main-container { background-color: #555555; border-radius: 30px; padding: 40px; min-height: 80vh; }
+
+        /* Header Bar */
+        .header-bar { background-color: #777777; border-radius: 25px; padding: 20px; margin-bottom: 30px; display: flex; align-items: center; }
+        .back-link { color: white; text-decoration: none; font-size: 24px; font-weight: bold; margin-right: 10px; cursor: pointer; }
+
+        /* Inner Content Box */
+        .content-box { background-color: #444444; border-radius: 30px; padding: 30px; }
+
+        /* Project Card */
+        .project-card { background-color: #cccccc; color: black; border-radius: 25px; padding: 20px; margin-bottom: 20px; position: relative; }
+        
+        /* Buttons */
+        .btn-purple { background-color: #5b50b9; color: white; border-radius: 15px; border: none; padding: 5px 20px; font-weight: bold; transition: 0.3s; }
+        .btn-purple:hover { background-color: #4a4099; transform: scale(1.05); }
+        .status-badge { display: none; background-color: #28a745; color: white; padding: 5px 15px; border-radius: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container main-container">
+    <div class="header-bar">
+        <a href="/Supervisor/Dashboard" class="back-link">&lt;Interests</a>
+    </div>
+
+    <div class="content-box">
+        <div class="project-card" id="proj-1">
+            <div class="float-end">
+                <button class="btn-purple me-2" onclick="acceptProject(1)">Accept</button>
+                <button class="btn-purple" onclick="removeProject(1)">Remove</button>
+                <span id="badge-1" class="status-badge">Accepted ✓</span>
+            </div>
+            <h5 class="fw-bold">Project: Housing meter</h5>
+            <p class="mb-0">Group: 69</p>
+            <p class="mb-0">Category: IOT</p>
+            <p class="small text-muted mt-2">cascmknsknvkndljkbnsdm klscvkjdcnvlkfdsmn ksdcnjvl kdfmvezfjdnvbldkn</p>
+        </div>
+
+        </div>
+</div>
+
+<script>
+    // Function to handle "Accept"
+    function acceptProject(id) {
+        // Find buttons and hide them
+        const card = document.getElementById(`proj-${id}`);
+        const btns = card.querySelectorAll('.btn-purple');
+        btns.forEach(b => b.style.display = 'none');
+        
+        // Show the Accepted badge
+        document.getElementById(`badge-${id}`).style.display = 'inline-block';
+    }
+
+    // Function to handle "Remove"
+    function removeProject(id) {
+        if(confirm("Are you sure you want to remove this project?")) {
+            const card = document.getElementById(`proj-${id}`);
+            card.style.transition = "0.4s";
+            card.style.opacity = "0";
+            card.style.transform = "translateX(50px)";
+            setTimeout(() => card.remove(), 400);
+        }
+    }
+</script>
+
+</body>
+</html>
+
+

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Projectapp.Models
@@ -11,18 +12,17 @@ namespace Projectapp.Models
         [Required]
         public string Role { get; set; } = "Student";
 
-        // Student Specific
         public string? IndexNumber { get; set; }
+        public string? NIC { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? Birthday { get; set; }
+        public string? Address { get; set; }
         public string? Batch { get; set; }
-
-        // Supervisor Specific
-        public string? AcademicId { get; set; }
         public string? Faculty { get; set; }
-
-        // Shared
         public string? Degree { get; set; }
+        public string? AcademicId { get; set; }
 
         [Required]
-        public string PasswordHash { get; set; } // For simple 123 logic
+        public string PasswordHash { get; set; } = string.Empty;
     }
 }

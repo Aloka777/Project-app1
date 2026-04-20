@@ -60,7 +60,6 @@ app.Run();
 FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Controllers\AccountController.cs
 --------------------------------------------------
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Projectapp.Data;
 using Projectapp.Models;
 using System.Linq;
@@ -77,30 +76,38 @@ namespace Projectapp.Controllers
         }
 
         [HttpGet]
-        public IActionResult Login()
-        {
-            return View();
-        }
+        public IActionResult Login() => View();
 
         [HttpPost]
         public IActionResult Login(string email, string password)
         {
-            // Point 1: Hardcoded Admin Security
+            // 1. Hardcoded Admin Access
+            // This bypasses the database entirely for the admin
             if (email == "aloka@gmail.com" && password == "123")
             {
                 return RedirectToAction("Dashboard", "Admin");
             }
 
-            // Normal User Authentication
+            // 2. Student & Supervisor Login
+            // We search the 'Users' table for a match
             var user = _context.Users.FirstOrDefault(u => u.Email == email && u.PasswordHash == password);
 
             if (user != null)
             {
-                if (user.Role == "Student") return RedirectToAction("Dashboard", "Student");
-                if (user.Role == "Supervisor") return RedirectToAction("Dashboard", "Supervisor");
+                // Redirect based on the Role column in your database
+                if (user.Role == "Student")
+                {
+                    return RedirectToAction("Index", "Student", new { email = user.Email });
+                }
+
+                if (user.Role == "Supervisor")
+                {
+                    return RedirectToAction("Index", "Supervisor", new { email = user.Email });
+                }
             }
 
-            ViewBag.ErrorMessage = "Invalid login attempt.";
+            // 3. Error Handling
+            ViewBag.ErrorMessage = "Invalid email or password. Please try again.";
             return View();
         }
     }
@@ -259,26 +266,100 @@ namespace Projectapp.Controllers
 FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Controllers\StudentController.cs
 --------------------------------------------------
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Projectapp.Data;
 using Projectapp.Models;
-using System.Collections.Generic;
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Projectapp.Controllers
 {
     public class StudentController : Controller
     {
-        public IActionResult Index()
+        private readonly ApplicationDbContext _context;
+
+        public StudentController(ApplicationDbContext context)
         {
-            
-            var projects = new List<ProjectViewModel>
-            {
-                new ProjectViewModel { Title = "Housing meter", Group = "69", Category = "IOT", Status = "Pending", Description = "cascmnksnvkndljkbnsdm..." },
-                new ProjectViewModel { Title = "Monitoring system", Group = "individual", Category = "IOT", Status = "Matched", Description = "cascmnksnvkndljkbnsdm..." }
-            };
+            _context = context;
+        }
+
+        // Action to show the Student Dashboard
+        public IActionResult Index(string email)
+        {
+            var student = _context.Users.FirstOrDefault(u => u.Email == email && u.Role == "Student");
+            if (student == null) return RedirectToAction("Login", "Account");
+
+            var projects = _context.ProjectProposals
+                .Include(p => p.ResearchArea)
+                .Where(p => p.StudentId == student.Id)
+                .ToList();
+
+            ViewBag.Student = student;
+            ViewBag.Faculties = _context.Faculties.ToList();
+
+            // Only show research areas relevant to the student's faculty
+            ViewBag.ResearchAreas = _context.ResearchAreas
+                .Where(ra => ra.Faculty.Name == student.Faculty)
+                .ToList();
+
             return View(projects);
         }
 
-        public IActionResult CreateProject() => View();
-        public IActionResult ProjectDetails() => View();
+        [HttpPost]
+        public IActionResult UpdateProfile(ApplicationUser updatedData)
+        {
+            var user = _context.Users.Find(updatedData.Id);
+            if (user != null)
+            {
+                user.FullName = updatedData.FullName;
+                user.Faculty = updatedData.Faculty;
+                user.Batch = updatedData.Batch;
+                user.Degree = updatedData.Degree;
+                user.Address = updatedData.Address;
+                user.Gender = updatedData.Gender;
+                user.Birthday = updatedData.Birthday;
+                user.NIC = updatedData.NIC;
+                user.IndexNumber = updatedData.IndexNumber;
+                user.Email = updatedData.Email;
+                user.UserName = updatedData.Email;
+
+                if (!string.IsNullOrEmpty(updatedData.PasswordHash))
+                    user.PasswordHash = updatedData.PasswordHash;
+
+                _context.SaveChanges();
+            }
+            return RedirectToAction("Index", new { email = user?.Email });
+        }
+
+        public IActionResult ProjectDetails(int id)
+        {
+            var project = _context.ProjectProposals
+                .Include(p => p.ResearchArea)
+                .FirstOrDefault(p => p.Id == id);
+
+            if (project == null) return NotFound();
+
+            var student = _context.Users.Find(project.StudentId);
+            ViewBag.Student = student;
+
+            ViewBag.ResearchAreas = _context.ResearchAreas
+                .Where(ra => ra.Faculty.Name == student.Faculty)
+                .ToList();
+
+            // Supervisor details are hidden until project is Accepted
+            if (project.Status == "Accepted" && !string.IsNullOrEmpty(project.SupervisorId))
+            {
+                ViewBag.Supervisor = _context.Users.Find(project.SupervisorId);
+            }
+            else
+            {
+                ViewBag.Supervisor = null;
+            }
+
+            return View(project);
+        }
     }
 }
 
@@ -343,10 +424,10 @@ namespace Projectapp.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Relationship: Faculty has many Research Areas
+            // FIX: Explicitly define the relationship so .Include() works correctly
             modelBuilder.Entity<ResearchArea>()
-                .HasOne<Faculty>()
-                .WithMany()
+                .HasOne(r => r.Faculty)
+                .WithMany(f => f.ResearchAreas)
                 .HasForeignKey(r => r.FacultyId);
         }
     }
@@ -423,6 +504,7 @@ namespace Projectapp.Data
 FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Models\ApplicationUser.cs
 --------------------------------------------------
 using Microsoft.AspNetCore.Identity;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Projectapp.Models
@@ -435,19 +517,18 @@ namespace Projectapp.Models
         [Required]
         public string Role { get; set; } = "Student";
 
-        // Student Specific
         public string? IndexNumber { get; set; }
+        public string? NIC { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? Birthday { get; set; }
+        public string? Address { get; set; }
         public string? Batch { get; set; }
-
-        // Supervisor Specific
-        public string? AcademicId { get; set; }
         public string? Faculty { get; set; }
-
-        // Shared
         public string? Degree { get; set; }
+        public string? AcademicId { get; set; }
 
         [Required]
-        public string PasswordHash { get; set; } // For simple 123 logic
+        public string PasswordHash { get; set; } = string.Empty;
     }
 }
 
@@ -482,7 +563,7 @@ namespace Projectapp.Models
         [Required]
         public string Name { get; set; }
 
-        // Navigation property for ResearchAreas
+        // FIX: Ensure this is virtual to allow Entity Framework to load data into it
         public virtual ICollection<ResearchArea> ResearchAreas { get; set; } = new List<ResearchArea>();
     }
 }
@@ -531,26 +612,50 @@ namespace Projectapp.Models
 FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Models\ProjectProposal.cs
 --------------------------------------------------
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Projectapp.Models
 {
     public class ProjectProposal
     {
+        [Key]
         public int Id { get; set; }
+
+        [Required]
         public string Title { get; set; }
-        public string Description { get; set; }
+
+        public string? GroupName { get; set; } // For Group projects
+
+        public string Type { get; set; } // Individual or Group
+
+        public string? TeamMembers { get; set; } // Comma-separated Student IDs
+
+        public string Faculty { get; set; }
+
+        public int ResearchAreaId { get; set; }
+
+        [ForeignKey("ResearchAreaId")]
+        public virtual ResearchArea ResearchArea { get; set; }
+
+        // Smart Category helper
+        [NotMapped]
+        public string Category => ResearchArea?.Name ?? "General";
+
         public string TechnicalStack { get; set; }
+
+        public string Abstract { get; set; }
+
+        public string? ProposalFilePath { get; set; }
+
         public DateTime DateCreated { get; set; } = DateTime.Now;
 
-        // --- NEW FIELDS TO FIX THE ERRORS ---
-        public string GroupName { get; set; } // Fixes GroupName error
-        public string Category { get; set; }  // Fixes Category error
+        public string Status { get; set; } = "Pending"; // Pending, Accepted
 
-        // Existing relationships
-        public string Faculty { get; set; }
-        public int StudentId { get; set; }
-        public int? SupervisorId { get; set; }
-        public string Status { get; set; } // e.g., "Matched", "Unmatched"
+        public string StudentId { get; set; } // Linked to ApplicationUser.Id
+
+        public string? SupervisorId { get; set; } // Hidden until Accepted
     }
 }
 
@@ -577,19 +682,20 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Models\ResearchArea.cs
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Projectapp.Models // FIX 1: Add the namespace so other files can "see" this class
+namespace Projectapp.Models
 {
     public class ResearchArea
     {
-        [Key] // FIX 2: Explicitly mark the Primary Key
+        [Key]
         public int Id { get; set; }
 
-        [Required] // FIX 3: Good practice to ensure Name isn't null
+        [Required]
         public string Name { get; set; }
 
         // Foreign Key property
         public int FacultyId { get; set; }
 
+        // FIX: Navigation property back to Faculty
         [ForeignKey("FacultyId")]
         public virtual Faculty Faculty { get; set; }
     }
@@ -1299,52 +1405,111 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\CreateProj
 --------------------------------------------------
 FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.cshtml
 --------------------------------------------------
-@model IEnumerable<Projectapp.Models.ProjectViewModel>
+@model IEnumerable<Projectapp.Models.ProjectProposal>
 @{
     Layout = null;
+    var student = ViewBag.Student as Projectapp.Models.ApplicationUser;
+    var faculties = ViewBag.Faculties as IEnumerable<Projectapp.Models.Faculty>;
 }
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Student Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="~/css/Student/dashboard.css" asp-append-version="true" />
+    <style>
+        body { background-color: #121212; color: white; }
+        .card-custom { background-color: #1e1e1e; border: 1px solid #333; border-radius: 15px; padding: 20px; }
+        .form-control, .form-select { background-color: #2b2b2b; color: white; border: 1px solid #444; }
+        .btn-purple { background-color: #6a5acd; color: white; border: none; }
+        .btn-purple:hover { background-color: #5a4db8; color: white; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="welcome-card">
-            <div class="d-flex justify-content-between">
-                <h1 class="display-5">Welcome</h1>
-                <button class="btn-purple">Account</button>
-            </div>
-            <p>2026.04.17</p>
-        </div>
-
-        <div class="mb-4 d-flex justify-content-between">
-            <div>
-                <a href="@Url.Action("ProjectDetails", "Student")" class="btn-purple me-2">Projects</a>
-                <a href="@Url.Action("CreateProject", "Student")" class="btn-purple">+ Create Project</a>
-            </div>
-            <button class="btn-purple">Filter &nbsp; ▾</button>
-        </div>
-
-        <div style="background-color: #444; padding: 25px; border-radius: 30px;">
-            @if (Model != null)
-            {
-                @foreach (var item in Model)
-                {
-                    <div class="project-card">
-                        <div class="d-flex justify-content-between">
-                            <strong>Project: @item.Title</strong>
-                            <span class="btn-purple" style="font-size: 0.8rem;">@item.Status</span>
-                        </div>
-                        <div>Group: @item.Group</div>
-                        <div>Category: @item.Category</div>
-                        <div class="small mt-2">@item.Description</div>
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card-custom">
+                <h4 class="mb-4">Update Profile</h4>
+                <form asp-action="UpdateProfile" method="post">
+                    <input type="hidden" name="Id" value="@student.Id" />
+                    <div class="mb-2">
+                        <label class="small">Full Name</label>
+                        <input type="text" name="FullName" class="form-control" value="@student.FullName" />
                     </div>
-                }
+                    <div class="mb-2">
+                        <label class="small">Faculty</label>
+                        <select name="Faculty" class="form-select">
+                            @foreach(var f in faculties) {
+                                <option value="@f.Name" selected="@(f.Name == student.Faculty)">@f.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="small">Batch</label>
+                            <input type="text" name="Batch" class="form-control" value="@student.Batch" />
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="small">Degree</label>
+                            <input type="text" name="Degree" class="form-control" value="@student.Degree" />
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small">Address</label>
+                        <input type="text" name="Address" class="form-control" value="@student.Address" />
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="small">Gender</label>
+                            <select name="Gender" class="form-select">
+                                <option value="Male" selected="@(student.Gender == "Male")">Male</option>
+                                <option value="Female" selected="@(student.Gender == "Female")">Female</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="small">Birthday</label>
+                            <input type="date" name="Birthday" class="form-control" value="@(student.Birthday?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="small">NIC</label>
+                            <input type="text" name="NIC" class="form-control" value="@student.NIC" />
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="small">Student ID</label>
+                            <input type="text" name="IndexNumber" class="form-control" value="@student.IndexNumber" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small">Email</label>
+                        <input type="email" name="Email" class="form-control" value="@student.Email" />
+                    </div>
+                    <button type="submit" class="btn btn-purple w-100">Update Account</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>My Projects</h2>
+                <a href="@Url.Action("CreateProject", "Student", new { email = student.Email })" class="btn btn-success">Create New Project</a>
+            </div>
+
+            @foreach (var proj in Model)
+            {
+                <div class="card-custom mb-3">
+                    <div class="d-flex justify-content-between">
+                        <h5 class="text-info">@proj.Title</h5>
+                        <span class="badge @(proj.Status == "Accepted" ? "bg-success" : "bg-warning text-dark")">@proj.Status</span>
+                    </div>
+                    <p class="text-muted small">@proj.TechnicalStack</p>
+                    <a href="@Url.Action("ProjectDetails", "Student", new { id = proj.Id })" class="btn btn-sm btn-outline-light">Edit / View Details</a>
+                </div>
             }
         </div>
     </div>
+</div>
 </body>
 </html>
 
@@ -1352,60 +1517,117 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
 --------------------------------------------------
 FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\ProjectDetails.cshtml
 --------------------------------------------------
+@model Projectapp.Models.ProjectProposal
 @{
     Layout = null;
+    var supervisor = ViewBag.Supervisor as Projectapp.Models.ApplicationUser;
+    var areas = ViewBag.ResearchAreas as IEnumerable<Projectapp.Models.ResearchArea>;
 }
 <!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="~/css/Student/project-details.css" asp-append-version="true" />
+    <style>
+        .custom-input { position: relative; background: white; border-radius: 10px; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; }
+        .custom-input input, .custom-input select, .custom-input textarea { border: none; width: 100%; outline: none; }
+        .edit-tag { position: absolute; right: 10px; color: #4a47a3; font-weight: bold; font-size: 0.8rem; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header-card">
-            <a href="@Url.Action("Index", "Student")" class="back-link"> &lt; Project</a>
+<div class="container mt-5">
+    <form asp-action="UpdateProject" method="post" enctype="multipart/form-data">
+        <input type="hidden" asp-for="Id" />
+        <div class="header-card d-flex justify-content-between mb-4">
+            <a href="@Url.Action("Index", "Student", new { email = User.Identity.Name })" class="text-white text-decoration-none"> &lt; Back to Dashboard</a>
             <div>
-                <button class="btn-purple me-2">Save</button>
-                <button class="btn-purple" style="background-color: #4a47a3;">Withdraw</button>
+                <button type="submit" class="btn btn-primary me-2">Save Project</button>
+                <button type="button" class="btn btn-danger">Withdraw</button>
             </div>
         </div>
 
-        <div class="form-box">
-            <label>Project Title</label>
-            <div class="custom-input"><span></span> <b>Edit</b></div>
+        <div class="form-box bg-light p-4 rounded-4 text-dark">
+            <label class="fw-bold">Project Title</label>
+            <div class="custom-input">
+                <input type="text" asp-for="Title" required />
+                <span class="edit-tag">Edit</span>
+            </div>
 
-            <label>Research Area</label>
-            <div class="custom-input"><span></span> <b>v</b></div>
+            <label class="fw-bold">Research Area (Filtered by Faculty)</label>
+            <div class="custom-input">
+                <select asp-for="ResearchAreaId">
+                    @foreach(var area in areas) {
+                        <option value="@area.Id" selected="@(area.Id == Model.ResearchAreaId)">@area.Name</option>
+                    }
+                </select>
+            </div>
 
-            <label>Technical Stack</label>
-            <div class="custom-input"><span></span> <b>Edit</b></div>
+            <label class="fw-bold">Technical Stack</label>
+            <div class="custom-input">
+                <input type="text" asp-for="TechnicalStack" placeholder="C#, Flutter, SQL..." />
+            </div>
 
-            <label>Abstract</label>
-            <div class="custom-input" style="height: 80px;"><span></span> <b>Edit</b></div>
+            <label class="fw-bold">Abstract</label>
+            <div class="custom-input">
+                <textarea asp-for="Abstract" rows="3"></textarea>
+            </div>
 
             <div class="row">
                 <div class="col-6">
-                    <label>Upload your Proposal</label>
-                    <div class="custom-input"><span></span> <b>Edit</b></div>
-                    <div class="mb-2 text-black" style="font-size: 0.9rem;">
-                        Type: &nbsp; Individual <input type="radio" name="t"> &nbsp; Group <input type="radio" name="t">
+                    <label class="fw-bold">Proposal Document</label>
+                    <div class="custom-input">
+                        <input type="file" name="proposalFile" />
                     </div>
-                    <div class="custom-input" style="height: 100px; align-items: flex-end; justify-content: flex-end;"><b>+ADD<br>Browse</b></div>
+                    
+                    <div class="mt-3">
+                        <input type="radio" asp-for="Type" value="Individual"> Individual 
+                        <input type="radio" asp-for="Type" value="Group" class="ms-3"> Group
+                    </div>
+
+                    <div id="members-area" class="mt-3">
+                        <label class="small fw-bold">Team Member Student IDs</label>
+                        <div id="member-inputs">
+                            @if(!string.IsNullOrEmpty(Model.TeamMembers)) {
+                                foreach(var id in Model.TeamMembers.Split(',')) {
+                                    <input type="text" name="memberIds" value="@id" class="form-control form-control-sm mb-1" />
+                                }
+                            }
+                        </div>
+                        <button type="button" class="btn btn-sm btn-dark mt-1" onclick="addId()">+ Add Student ID</button>
+                    </div>
                 </div>
+
                 <div class="col-6">
-                    <label>Supervisor</label>
-                    <div class="custom-input" style="height: 180px; flex-direction: column; align-items: flex-start; justify-content: flex-start;">
-                        <span class="mb-1">Name:</span>
-                        <span class="mb-1">Faculty:</span>
-                        <span class="mb-1">Contact Number:</span>
-                        <span>Email:</span>
-                        <b style="align-self: flex-end; margin-top: auto;">Browse</b>
+                    <label class="fw-bold">Supervisor Details</label>
+                    <div class="custom-input" style="height: 180px; background-color: @(supervisor == null ? "#eee" : "white")">
+                        @if(Model.Status == "Accepted" && supervisor != null) {
+                            <div class="p-2">
+                                <div><strong>Name:</strong> @supervisor.FullName</div>
+                                <div><strong>Faculty:</strong> @supervisor.Faculty</div>
+                                <div><strong>Email:</strong> @supervisor.Email</div>
+                                <div class="badge bg-success mt-2">Verified Supervisor</div>
+                            </div>
+                        } else {
+                            <div class="text-center text-muted mt-5">
+                                Details hidden until a supervisor accepts.
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
+</div>
+
+<script>
+    function addId() {
+        const div = document.createElement('input');
+        div.name = 'memberIds';
+        div.className = 'form-control form-control-sm mb-1';
+        div.placeholder = 'Student ID';
+        document.getElementById('member-inputs').appendChild(div);
+    }
+</script>
 </body>
 </html>
 

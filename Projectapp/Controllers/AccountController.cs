@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Projectapp.Data;
 using Projectapp.Models;
 using System.Linq;
@@ -16,30 +15,38 @@ namespace Projectapp.Controllers
         }
 
         [HttpGet]
-        public IActionResult Login()
-        {
-            return View();
-        }
+        public IActionResult Login() => View();
 
         [HttpPost]
         public IActionResult Login(string email, string password)
         {
-            // Point 1: Hardcoded Admin Security
+            // 1. Hardcoded Admin Access
+            // This bypasses the database entirely for the admin
             if (email == "aloka@gmail.com" && password == "123")
             {
                 return RedirectToAction("Dashboard", "Admin");
             }
 
-            // Normal User Authentication
+            // 2. Student & Supervisor Login
+            // We search the 'Users' table for a match
             var user = _context.Users.FirstOrDefault(u => u.Email == email && u.PasswordHash == password);
 
             if (user != null)
             {
-                if (user.Role == "Student") return RedirectToAction("Dashboard", "Student");
-                if (user.Role == "Supervisor") return RedirectToAction("Dashboard", "Supervisor");
+                // Redirect based on the Role column in your database
+                if (user.Role == "Student")
+                {
+                    return RedirectToAction("Index", "Student", new { email = user.Email });
+                }
+
+                if (user.Role == "Supervisor")
+                {
+                    return RedirectToAction("Index", "Supervisor", new { email = user.Email });
+                }
             }
 
-            ViewBag.ErrorMessage = "Invalid login attempt.";
+            // 3. Error Handling
+            ViewBag.ErrorMessage = "Invalid email or password. Please try again.";
             return View();
         }
     }
