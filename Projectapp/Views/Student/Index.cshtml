@@ -79,6 +79,18 @@
             margin-bottom: 15px;
         }
 
+        /* FIX: Ensures text in the Modal inputs is Black and visible */
+        #newProjectModal .form-control, 
+        #newProjectModal .form-select {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+
+        /* Fix placeholder color for the modal inputs */
+        #newProjectModal .form-control::placeholder {
+            color: #6c757d !important;
+        }
+
         .keyword-selector { 
             max-height: 160px; 
             overflow-y: auto; 

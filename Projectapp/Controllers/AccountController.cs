@@ -20,20 +20,15 @@ namespace Projectapp.Controllers
         [HttpPost]
         public IActionResult Login(string email, string password)
         {
-            // 1. Hardcoded Admin Access
-            // This bypasses the database entirely for the admin
             if (email == "aloka@gmail.com" && password == "123")
             {
                 return RedirectToAction("Dashboard", "Admin");
             }
 
-            // 2. Student & Supervisor Login
-            // We search the 'Users' table for a match
             var user = _context.Users.FirstOrDefault(u => u.Email == email && u.PasswordHash == password);
 
             if (user != null)
             {
-                // Redirect based on the Role column in your database
                 if (user.Role == "Student")
                 {
                     return RedirectToAction("Index", "Student", new { email = user.Email });
@@ -41,11 +36,11 @@ namespace Projectapp.Controllers
 
                 if (user.Role == "Supervisor")
                 {
-                    return RedirectToAction("Index", "Supervisor", new { email = user.Email });
+                    // FIXED: Changed "Index" to "Dashboard" to match SupervisorController
+                    return RedirectToAction("Dashboard", "Supervisor", new { email = user.Email });
                 }
             }
 
-            // 3. Error Handling
             ViewBag.ErrorMessage = "Invalid email or password. Please try again.";
             return View();
         }

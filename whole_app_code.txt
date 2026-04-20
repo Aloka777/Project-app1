@@ -306,29 +306,34 @@ namespace Projectapp.Controllers
         [HttpPost]
         public async Task<IActionResult> ManageProject(ProjectProposal model, IFormFile? proposalFile, string[] memberIds, int[] selectedKeywords, string ProjectType)
         {
-            // 1. Assign Project Type from the Radio Buttons
             model.ProjectType = ProjectType;
-            model.Type = ProjectType; // Syncing both fields for safety
+            model.Type = ProjectType;
 
-            // 2. Team Members Logic
-            if (model.ProjectType == "Group" && memberIds != null && memberIds.Length > 0)
+            if (model.ProjectType == "Group")
             {
-                model.TeamMembers = string.Join(", ", memberIds.Where(id => !string.IsNullOrEmpty(id)));
+                if (memberIds != null && memberIds.Length > 0)
+                {
+                    model.TeamMembers = string.Join(", ", memberIds.Where(id => !string.IsNullOrEmpty(id)));
+                }
             }
             else
             {
                 model.TeamMembers = "Individual";
+                model.GroupName = null;
             }
 
-            // 3. Keyword Validation
+            var studentUser = _context.Users.Find(model.StudentId);
+            if (studentUser != null)
+            {
+                model.Faculty = studentUser.Faculty;
+            }
+
             if (selectedKeywords == null || selectedKeywords.Length == 0)
             {
                 ModelState.AddModelError("Keywords", "Keywords are mandatory.");
-                var user = _context.Users.Find(model.StudentId);
-                return RedirectToAction("Index", new { email = user?.Email });
+                return RedirectToAction("Index", new { email = studentUser?.Email });
             }
 
-            // 4. File Upload
             if (proposalFile != null)
             {
                 string folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
@@ -349,32 +354,46 @@ namespace Projectapp.Controllers
             _context.ProjectProposals.Add(model);
             await _context.SaveChangesAsync();
 
-            // 5. Link Keywords in Database
             foreach (var kwId in selectedKeywords)
             {
                 _context.ProjectKeywords.Add(new ProjectKeyword { ProjectId = model.Id, KeywordId = kwId });
             }
             await _context.SaveChangesAsync();
 
-            var student = _context.Users.Find(model.StudentId);
-            return RedirectToAction("Index", new { email = student?.Email });
+            return RedirectToAction("Index", new { email = studentUser?.Email });
         }
 
+        // --- UPDATED PROFILE METHOD WITH ADDRESS, BDAY, EMAIL, PASSWORD ---
         [HttpPost]
         public IActionResult UpdateProfile(ApplicationUser updatedData)
         {
             var user = _context.Users.Find(updatedData.Id);
             if (user != null)
             {
+                // Core Info
                 user.FullName = updatedData.FullName;
+                user.Email = updatedData.Email; // Fix: Saves Email
+
+                // Identity Info
+                user.NIC = updatedData.NIC;
+                user.IndexNumber = updatedData.IndexNumber;
+
+                // Missing Info Fixes:
+                user.Address = updatedData.Address; // Fix: Saves Address
+                user.Birthday = updatedData.Birthday; // Fix: Saves Birthday
+
+                // Academic Info
                 user.Faculty = updatedData.Faculty;
                 user.Batch = updatedData.Batch;
                 user.Degree = updatedData.Degree;
-                user.Address = updatedData.Address;
-                user.NIC = updatedData.NIC;
-                user.IndexNumber = updatedData.IndexNumber;
-                user.Email = updatedData.Email;
-                if (!string.IsNullOrEmpty(updatedData.PasswordHash)) user.PasswordHash = updatedData.PasswordHash;
+
+                // Password Security Fix:
+                // Only update if the user actually typed something in the password box
+                if (!string.IsNullOrEmpty(updatedData.PasswordHash))
+                {
+                    user.PasswordHash = updatedData.PasswordHash;
+                }
+
                 _context.SaveChanges();
             }
             return RedirectToAction("Index", new { email = user?.Email });
@@ -1460,7 +1479,6 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
             padding: 0; 
         }
 
-        /* SIDEBAR - ACCOUNT SECTION */
         .sidebar { 
             background: var(--card-bg); 
             border-right: 1px solid #333; 
@@ -1480,7 +1498,6 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
             font-size: 0.85rem;
         }
 
-        /* MAIN CONTENT AREA */
         .main-content { 
             margin-left: 340px; 
             padding: 40px; 
@@ -1511,6 +1528,18 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
             margin-bottom: 15px;
         }
 
+        /* FIX: Ensures text in the Modal inputs is Black and visible */
+        #newProjectModal .form-control, 
+        #newProjectModal .form-select {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+
+        /* Fix placeholder color for the modal inputs */
+        #newProjectModal .form-control::placeholder {
+            color: #6c757d !important;
+        }
+
         .keyword-selector { 
             max-height: 160px; 
             overflow-y: auto; 
@@ -1521,7 +1550,6 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
             margin-bottom: 15px;
         }
 
-        /* Radio Styling */
         .form-check-input:checked {
             background-color: var(--purple-primary);
             border-color: var(--purple-primary);
@@ -1572,8 +1600,21 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
                 </div>
             </div>
 
+            <div class="row g-2">
+                <div class="col-12">
+                    <label>Birthday</label>
+                    <input type="date" name="Birthday" class="form-control" value="@(student.Birthday?.ToString("yyyy-MM-dd"))" />
+                </div>
+            </div>
+
+            <label>Residential Address</label>
+            <input type="text" name="Address" class="form-control" value="@student.Address" placeholder="Enter your address" />
+
             <label>Email Address</label>
             <input type="email" name="Email" class="form-control" value="@student.Email" />
+
+            <label>Update Password</label>
+            <input type="password" name="PasswordHash" class="form-control" placeholder="Leave blank to keep current" />
 
             <button type="submit" class="btn btn-purple w-100 mt-2">Save Profile Changes</button>
         </form>
@@ -1598,6 +1639,9 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
                     <div class="col-md-3 border-end border-secondary pe-4 me-4">
                         <h6 class="small text-uppercase fw-bold mb-2" style="color: var(--purple-primary);">Information</h6>
                         <p class="mb-1 small">Type: <strong>@proj.ProjectType</strong></p>
+                        @if(proj.ProjectType == "Group") {
+                            <p class="mb-1 small text-info">Group: @proj.GroupName</p>
+                        }
                         <p class="@(proj.Status == "Accepted" ? "text-success fw-bold" : "text-muted small")">
                             @(proj.Status == "Accepted" ? "Supervisor Assigned ✓" : "Status: Pending")
                         </p>
@@ -1642,7 +1686,11 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
                             </div>
                         </div>
 
-                        <div id="teamSection" style="display: none;" class="mb-3 animate-fade-in">
+                        <div id="teamSection" style="display: none;" class="mb-3">
+                            <div class="mb-3">
+                                <label class="text-white">Group Name / Team ID</label>
+                                <input type="text" name="GroupName" class="form-control" placeholder="e.g. Team Alpha" />
+                            </div>
                             <label class="text-white">Additional Team Member Student IDs</label>
                             <div id="memberContainer">
                                 <div class="input-group mb-2">
@@ -1706,14 +1754,9 @@ FILE: C:\Users\ROG\Source\Repos\Project-app1\Projectapp\Views\Student\Index.csht
             const isGroup = document.getElementById('typeGroup').checked;
             teamSection.style.display = isGroup ? 'block' : 'none';
             
-            // Clear members if switched back to Individual
             if(!isGroup) {
-                const container = document.getElementById('memberContainer');
-                container.innerHTML = `
-                    <div class="input-group mb-2">
-                        <input type="text" name="memberIds" class="form-control mb-0" placeholder="e.g. ST1001" />
-                        <button type="button" class="btn btn-outline-info" onclick="addMemberField()">+</button>
-                    </div>`;
+                const inputs = teamSection.querySelectorAll('input');
+                inputs.forEach(i => i.value = '');
             }
         }
 
