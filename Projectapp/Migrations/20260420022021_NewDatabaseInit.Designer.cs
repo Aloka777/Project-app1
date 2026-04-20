@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Projectapp.Data;
 
@@ -11,9 +12,11 @@ using Projectapp.Data;
 namespace Projectapp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420022021_NewDatabaseInit")]
+    partial class NewDatabaseInit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -33,19 +36,10 @@ namespace Projectapp.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Batch")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("Birthday")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("ConcurrencyStamp")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ContactNumber")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Degree")
@@ -57,9 +51,6 @@ namespace Projectapp.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Expertise")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Faculty")
                         .HasColumnType("nvarchar(max)");
 
@@ -67,13 +58,7 @@ namespace Projectapp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Gender")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("IndexNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Keywords")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("LockoutEnabled")
@@ -82,9 +67,6 @@ namespace Projectapp.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("NIC")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("NormalizedEmail")
                         .HasColumnType("nvarchar(max)");
 
@@ -92,7 +74,6 @@ namespace Projectapp.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
@@ -148,12 +129,7 @@ namespace Projectapp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ResearchAreaId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("ResearchAreaId");
 
                     b.ToTable("MasterKeywords");
                 });
@@ -185,43 +161,34 @@ namespace Projectapp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Abstract")
+                    b.Property<string>("Category")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Faculty")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GroupName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ProjectType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ProposalFilePath")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ResearchAreaId")
-                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("StudentId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("SupervisorId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TeamMembers")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("SupervisorId")
+                        .HasColumnType("int");
 
                     b.Property<string>("TechnicalStack")
                         .IsRequired()
@@ -231,12 +198,7 @@ namespace Projectapp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Type")
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("ResearchAreaId");
 
                     b.ToTable("ProjectProposals");
                 });
@@ -252,6 +214,9 @@ namespace Projectapp.Migrations
                     b.Property<int>("FacultyId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("FacultyId1")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -259,6 +224,8 @@ namespace Projectapp.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FacultyId");
+
+                    b.HasIndex("FacultyId1");
 
                     b.ToTable("ResearchAreas");
                 });
@@ -271,66 +238,28 @@ namespace Projectapp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ProjectId")
+                    b.Property<int>("ResearchAreaId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SupervisorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("SupervisorId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
 
                     b.ToTable("SupervisorInterests");
                 });
 
-            modelBuilder.Entity("Projectapp.Models.MasterKeyword", b =>
-                {
-                    b.HasOne("Projectapp.Models.ResearchArea", "ResearchArea")
-                        .WithMany()
-                        .HasForeignKey("ResearchAreaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ResearchArea");
-                });
-
-            modelBuilder.Entity("Projectapp.Models.ProjectProposal", b =>
-                {
-                    b.HasOne("Projectapp.Models.ResearchArea", "ResearchArea")
-                        .WithMany()
-                        .HasForeignKey("ResearchAreaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ResearchArea");
-                });
-
             modelBuilder.Entity("Projectapp.Models.ResearchArea", b =>
                 {
-                    b.HasOne("Projectapp.Models.Faculty", "Faculty")
-                        .WithMany("ResearchAreas")
+                    b.HasOne("Projectapp.Models.Faculty", null)
+                        .WithMany()
                         .HasForeignKey("FacultyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Faculty");
-                });
-
-            modelBuilder.Entity("Projectapp.Models.SupervisorInterest", b =>
-                {
-                    b.HasOne("Projectapp.Models.ProjectProposal", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
+                    b.HasOne("Projectapp.Models.Faculty", null)
+                        .WithMany("ResearchAreas")
+                        .HasForeignKey("FacultyId1");
                 });
 
             modelBuilder.Entity("Projectapp.Models.Faculty", b =>

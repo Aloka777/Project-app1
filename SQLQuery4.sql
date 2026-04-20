@@ -1,0 +1,7 @@
+﻿ALTER TABLE AspNetUsers ADD 
+    Batch NVARCHAR(MAX) NULL, 
+    Degree NVARCHAR(MAX) NULL, 
+    Address NVARCHAR(MAX) NULL, 
+    NIC NVARCHAR(MAX) NULL, 
+    Gender NVARCHAR(MAX) NULL, 
+    Birthday DATETIME2 NULL;

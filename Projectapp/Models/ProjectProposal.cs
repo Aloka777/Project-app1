@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Projectapp.Models
 {
@@ -7,43 +10,42 @@ namespace Projectapp.Models
         [Key]
         public int Id { get; set; }
 
-        public string Title { get; set; } = string.Empty;
+        [Required]
+        public string Title { get; set; }
 
-        // This fixes the 'Description' error
-        public string Description { get; set; } = string.Empty;
+        public string? GroupName { get; set; }
 
-        // This fixes the 'GroupName' error
-        public string GroupName { get; set; } = string.Empty;
+        // This is the field the controller will now use
+        public string ProjectType { get; set; }
 
-        // This fixes the 'Category' error
-        public string Category { get; set; } = string.Empty;
+        // Keeping 'Type' for backward compatibility if needed, 
+        // but we will primarily use ProjectType
+        public string? Type { get; set; }
 
-        public string Status { get; set; } = "Unmatched";
+        public string? TeamMembers { get; set; }
 
-        // These fix the 'Faculty' and 'Subject' errors
-        public string Faculty { get; set; } = string.Empty;
-        public string Subject { get; set; } = string.Empty;
+        public string Faculty { get; set; }
 
-        // This fixes the 'DateCreated' error
+        public int ResearchAreaId { get; set; }
+
+        [ForeignKey("ResearchAreaId")]
+        public virtual ResearchArea? ResearchArea { get; set; }
+
+        [NotMapped]
+        public string Category => ResearchArea?.Name ?? "General";
+
+        public string TechnicalStack { get; set; }
+
+        public string Abstract { get; set; }
+
+        public string? ProposalFilePath { get; set; }
+
         public DateTime DateCreated { get; set; } = DateTime.Now;
 
-       
+        public string Status { get; set; } = "Pending";
 
-      
+        public string StudentId { get; set; }
 
-        [Required]
-        public string Abstract { get; set; } = string.Empty;
-
-        [Required]
-        public string TechnicalStack { get; set; } = string.Empty;
-
-        [Required]
-        public string ResearchArea { get; set; } = string.Empty;
-
-    
-
-        // Adding the '?' makes these nullable (they can be empty)
-        public string? StudentName { get; set; }
-        public string? SupervisorName { get; set; }
+        public string? SupervisorId { get; set; }
     }
 }

@@ -1,53 +1,47 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Projectapp.Data;
+using Projectapp.Models;
+using System.Linq;
 
 namespace Projectapp.Controllers
 {
     public class AccountController : Controller
     {
-        // --- LOGIN SECTION ---
+        private readonly ApplicationDbContext _context;
 
-        [HttpGet]
-        public IActionResult Login()
+        public AccountController(ApplicationDbContext context)
         {
-            return View();
+            _context = context;
         }
 
+        [HttpGet]
+        public IActionResult Login() => View();
+
         [HttpPost]
-        public IActionResult Login(string email, string password, string role)
+        public IActionResult Login(string email, string password)
         {
-            // Hardcoded credentials for Student, Supervisor, and Admin
             if (email == "aloka@gmail.com" && password == "123")
             {
-                // Successful login redirects to the Home page
                 return RedirectToAction("Dashboard", "Admin");
             }
 
-            // If login fails
-            ViewBag.ErrorMessage = "Invalid email or password.";
-            return View();
-        }
+            var user = _context.Users.FirstOrDefault(u => u.Email == email && u.PasswordHash == password);
 
-        // --- FORGET PASSWORD SECTION ---
-
-        [HttpGet]
-        public IActionResult ForgetPassword()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        public IActionResult ForgetPassword(string email, string role)
-        {
-            // For now, we simulate sending an email
-            if (!string.IsNullOrEmpty(email))
+            if (user != null)
             {
-                ViewBag.Message = $"A reset link has been sent to {email} as a {role}.";
-            }
-            else
-            {
-                ViewBag.Error = "Please enter a valid email address.";
+                if (user.Role == "Student")
+                {
+                    return RedirectToAction("Index", "Student", new { email = user.Email });
+                }
+
+                if (user.Role == "Supervisor")
+                {
+                    // FIXED: Changed "Index" to "Dashboard" to match SupervisorController
+                    return RedirectToAction("Dashboard", "Supervisor", new { email = user.Email });
+                }
             }
 
+            ViewBag.ErrorMessage = "Invalid email or password. Please try again.";
             return View();
         }
     }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Projectapp.Data;
 
@@ -11,9 +12,11 @@ using Projectapp.Data;
 namespace Projectapp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420040411_SyncStudentTable")]
+    partial class SyncStudentTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,9 +48,6 @@ namespace Projectapp.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ContactNumber")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Degree")
                         .HasColumnType("nvarchar(max)");
 
@@ -56,9 +56,6 @@ namespace Projectapp.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
-
-                    b.Property<string>("Expertise")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Faculty")
                         .HasColumnType("nvarchar(max)");
@@ -71,9 +68,6 @@ namespace Projectapp.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("IndexNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Keywords")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("LockoutEnabled")
@@ -199,10 +193,6 @@ namespace Projectapp.Migrations
                     b.Property<string>("GroupName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ProjectType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ProposalFilePath")
                         .HasColumnType("nvarchar(max)");
 
@@ -232,6 +222,7 @@ namespace Projectapp.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Type")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -271,20 +262,13 @@ namespace Projectapp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("ProjectId")
+                    b.Property<int>("ResearchAreaId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SupervisorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("SupervisorId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
 
                     b.ToTable("SupervisorInterests");
                 });
@@ -320,17 +304,6 @@ namespace Projectapp.Migrations
                         .IsRequired();
 
                     b.Navigation("Faculty");
-                });
-
-            modelBuilder.Entity("Projectapp.Models.SupervisorInterest", b =>
-                {
-                    b.HasOne("Projectapp.Models.ProjectProposal", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("Projectapp.Models.Faculty", b =>
