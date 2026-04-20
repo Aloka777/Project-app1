@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Projectapp.Data;
 
@@ -11,9 +12,11 @@ using Projectapp.Data;
 namespace Projectapp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260420022021_NewDatabaseInit")]
+    partial class NewDatabaseInit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -71,7 +74,6 @@ namespace Projectapp.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
@@ -127,12 +129,7 @@ namespace Projectapp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ResearchAreaId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("ResearchAreaId");
 
                     b.ToTable("MasterKeywords");
                 });
@@ -206,26 +203,7 @@ namespace Projectapp.Migrations
                     b.ToTable("ProjectProposals");
                 });
 
-            modelBuilder.Entity("Projectapp.Models.SupervisorInterest", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ResearchAreaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SupervisorId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SupervisorInterests");
-                });
-
-            modelBuilder.Entity("ResearchArea", b =>
+            modelBuilder.Entity("Projectapp.Models.ResearchArea", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -252,18 +230,26 @@ namespace Projectapp.Migrations
                     b.ToTable("ResearchAreas");
                 });
 
-            modelBuilder.Entity("Projectapp.Models.MasterKeyword", b =>
+            modelBuilder.Entity("Projectapp.Models.SupervisorInterest", b =>
                 {
-                    b.HasOne("ResearchArea", "ResearchArea")
-                        .WithMany("Keywords")
-                        .HasForeignKey("ResearchAreaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
 
-                    b.Navigation("ResearchArea");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ResearchAreaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupervisorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SupervisorInterests");
                 });
 
-            modelBuilder.Entity("ResearchArea", b =>
+            modelBuilder.Entity("Projectapp.Models.ResearchArea", b =>
                 {
                     b.HasOne("Projectapp.Models.Faculty", null)
                         .WithMany()
@@ -279,11 +265,6 @@ namespace Projectapp.Migrations
             modelBuilder.Entity("Projectapp.Models.Faculty", b =>
                 {
                     b.Navigation("ResearchAreas");
-                });
-
-            modelBuilder.Entity("ResearchArea", b =>
-                {
-                    b.Navigation("Keywords");
                 });
 #pragma warning restore 612, 618
         }

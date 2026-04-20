@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Projectapp.Data;
 using Projectapp.Models;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace Projectapp.Controllers
@@ -15,62 +15,92 @@ namespace Projectapp.Controllers
             _context = context;
         }
 
-        // --- DASHBOARD (PROJECT CARDS) ---
-        public IActionResult Dashboard(string faculty, string subject, string sortBy)
+        // Dashboard: Handles Points 2, 4, 5
+        public IActionResult Dashboard(string sortBy, string facultyFilter, string status)
         {
-            // 1. Start with all projects from the database
-            var projectsQuery = _context.ProjectProposals.AsQueryable();
+            // FIX: Added .Include(f => f.ResearchAreas) to ensure the sidebar can see the areas
+            ViewBag.Faculties = _context.Faculties
+                                        .Include(f => f.ResearchAreas)
+                                        .ToList();
 
-            // 2. Apply Faculty Filter
-            if (!string.IsNullOrEmpty(faculty) && faculty != "All")
-            {
-                projectsQuery = projectsQuery.Where(p => p.Faculty == faculty);
-            }
+            var projects = _context.ProjectProposals.AsQueryable();
 
-            // 3. Apply Subject Filter (Optional for now)
-            if (!string.IsNullOrEmpty(subject))
-            {
-                projectsQuery = projectsQuery.Where(p => p.Subject.Contains(subject));
-            }
+            // Point 5: Matched/Unmatched Logic
+            if (status == "Matched")
+                projects = projects.Where(p => p.SupervisorId != null);
+            else if (status == "Unmatched")
+                projects = projects.Where(p => p.SupervisorId == null);
 
-            // 4. Apply Sorting
-            if (sortBy == "name")
-            {
-                projectsQuery = projectsQuery.OrderBy(p => p.Title);
-            }
-            else
-            {
-                projectsQuery = projectsQuery.OrderByDescending(p => p.DateCreated);
-            }
+            // Point 4: Smart Filtering
+            if (!string.IsNullOrEmpty(facultyFilter) && facultyFilter != "All")
+                projects = projects.Where(p => p.Faculty == facultyFilter);
 
-            // 5. Convert to list and send to the View
-            var projectsList = projectsQuery.ToList();
-            return View(projectsList);
+            // Point 4: Sorting
+            projects = sortBy switch
+            {
+                "name" => projects.OrderBy(p => p.Title),
+                "faculty" => projects.OrderBy(p => p.Faculty),
+                _ => projects.OrderByDescending(p => p.DateCreated)
+            };
+
+            return View(projects.ToList());
         }
 
-        // --- MANAGE ACCOUNTS ---
-        public IActionResult ManageAccounts(string role = "Student")
+        // Point 3: AJAX Dynamic Research Areas
+        [HttpGet]
+        public IActionResult GetResearchAreas(int facultyId)
         {
-            // Fetch users based on the role (Student or Supervisor)
-            var users = _context.Users
-                                .Where(u => u.Role == role)
-                                .ToList() ?? new List<ApplicationUser>();
-
-            ViewBag.SelectedRole = role;
-
-            return View(users);
+            var areas = _context.ResearchAreas
+                .Where(a => a.FacultyId == facultyId)
+                .Select(a => new { id = a.Id, name = a.Name })
+                .ToList();
+            return Json(areas);
         }
 
-        // --- CREATE ACCOUNT ---
+        // Point 3: Keyword Storage
         [HttpPost]
-        public IActionResult CreateAccount(ApplicationUser newUser)
+        public IActionResult AddKeyword(int researchAreaId, string keywordName)
         {
-            if (ModelState.IsValid)
+            if (!string.IsNullOrEmpty(keywordName))
             {
-                _context.Users.Add(newUser);
+                var keyword = new MasterKeyword
+                {
+                    Name = keywordName,
+                    ResearchAreaId = researchAreaId
+                };
+                _context.MasterKeywords.Add(keyword);
                 _context.SaveChanges();
             }
-            return RedirectToAction("ManageAccounts", new { role = newUser.Role });
+            return RedirectToAction("Dashboard");
+        }
+
+        // Point 6 & 7: Account Management
+        public IActionResult ManageAccounts(string searchId, string facultyFilter, string role = "Student")
+        {
+            ViewBag.Faculties = _context.Faculties.ToList();
+            var users = _context.Users.Where(u => u.Role == role).AsQueryable();
+
+            if (!string.IsNullOrEmpty(searchId))
+                users = users.Where(u => u.IndexNumber == searchId || u.AcademicId == searchId);
+
+            if (!string.IsNullOrEmpty(facultyFilter) && facultyFilter != "All")
+                users = users.Where(u => u.Faculty == facultyFilter);
+
+            return View(users.ToList());
+        }
+
+        // Point 8: Create Account Logic
+        [HttpPost]
+        public IActionResult CreateAccount(ApplicationUser user)
+        {
+            user.UserName = user.Email;
+            user.NormalizedEmail = user.Email.ToUpper();
+            user.NormalizedUserName = user.Email.ToUpper();
+
+            _context.Users.Add(user);
+            _context.SaveChanges();
+
+            return RedirectToAction("ManageAccounts", new { role = user.Role });
         }
     }
 }

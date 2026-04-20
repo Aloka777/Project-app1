@@ -9,17 +9,20 @@ namespace Projectapp.Models
         public string FullName { get; set; } = string.Empty;
 
         [Required]
-        public string Role { get; set; } = "Student"; // Admin, Student, or Supervisor
+        public string Role { get; set; } = "Student";
 
-        // Student Specific Fields
+        // Student Specific
         public string? IndexNumber { get; set; }
         public string? Batch { get; set; }
 
-        // Supervisor Specific Fields
+        // Supervisor Specific
         public string? AcademicId { get; set; }
         public string? Faculty { get; set; }
 
-        // Shared Field
+        // Shared
         public string? Degree { get; set; }
+
+        [Required]
+        public string PasswordHash { get; set; } // For simple 123 logic
     }
 }

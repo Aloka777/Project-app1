@@ -1,81 +1,25 @@
 ﻿@model IEnumerable<Projectapp.Models.ApplicationUser>
 @{
     Layout = null;
-    var selectedRole = ViewBag.SelectedRole as string ?? "Student";
+    var selectedRole = Context.Request.Query["role"].ToString() ?? "Student";
+    if (string.IsNullOrEmpty(selectedRole)) selectedRole = "Student";
+    var faculties = ViewBag.Faculties as IEnumerable<Projectapp.Models.Faculty>;
 }
 <!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
     <style>
-        body {
-            background-color: #121212;
-            color: white;
-            font-family: sans-serif;
-            padding: 40px;
-        }
-
-        .main-card {
-            background-color: #2c2c2c;
-            border-radius: 25px;
-            padding: 30px;
-        }
-
-        .header-section {
-            background-color: #444;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .user-item {
-            background-color: #b0b0b0;
-            color: black;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 15px;
-            position: relative;
-        }
-
-        .btn-purple {
-            background-color: #5e4bb6;
-            color: white;
-            border-radius: 15px;
-            border: none;
-        }
-
-        .tab-btn {
-            background-color: #4b3b9b;
-            color: white;
-            border-radius: 15px;
-            padding: 8px 25px;
-            border: none;
-            margin-right: 10px;
-            opacity: 0.6;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .tab-active {
-            opacity: 1;
-            border: 2px solid white;
-        }
-
-        .search-bar {
-            background-color: #b0b0b0;
-            border-radius: 15px;
-            border: none;
-            padding: 5px 20px;
-            width: 150px;
-        }
-
-        .empty-state {
-            background-color: #444;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            border: 2px dashed #666;
-        }
+        body { background-color: #121212; color: white; font-family: sans-serif; padding: 40px; }
+        .main-card { background-color: #2c2c2c; border-radius: 25px; padding: 30px; }
+        .header-section { background-color: #444; border-radius: 20px; padding: 20px; margin-bottom: 20px; }
+        .user-item { background-color: #b0b0b0; color: black; border-radius: 20px; padding: 20px; margin-bottom: 15px; position: relative; }
+        .btn-purple { background-color: #5e4bb6; color: white; border-radius: 15px; border: none; }
+        .tab-btn { background-color: #4b3b9b; color: white; border-radius: 15px; padding: 8px 25px; border: none; margin-right: 10px; opacity: 0.6; text-decoration: none; display: inline-block; }
+        .tab-active { opacity: 1; border: 2px solid white; }
+        .search-bar { background-color: #b0b0b0; border-radius: 15px; border: none; padding: 8px 20px; width: 250px; color: #333; }
+        .empty-state { background-color: #444; padding: 40px; border-radius: 20px; text-align: center; border: 2px dashed #666; }
+        .filter-dropdown { background-color: #4b3b9b; color: white; border-radius: 15px; border: none; padding: 8px 20px; }
     </style>
 </head>
 <body>
@@ -85,20 +29,39 @@
             <p class="text-secondary">@DateTime.Now.ToString("yyyy.MM.dd")</p>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div class="d-flex">
-                <a href="?role=Student" class="tab-btn @(selectedRole == "Student" ? "tab-active" : "")">Students</a>
-                <a href="?role=Supervisor" class="tab-btn @(selectedRole == "Supervisor" ? "tab-active" : "")">Supervisor</a>
+        <form method="get" action="/Admin/ManageAccounts" id="searchForm">
+            <input type="hidden" name="role" value="@selectedRole" />
+            
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex">
+                    <a href="?role=Student" class="tab-btn @(selectedRole == "Student" ? "tab-active" : "")">Students</a>
+                    <a href="?role=Supervisor" class="tab-btn @(selectedRole == "Supervisor" ? "tab-active" : "")">Supervisor</a>
+                </div>
+
+                @* Point 7: Faculty Filter Dropdown *@
+                <select name="facultyFilter" class="filter-dropdown" onchange="this.form.submit()">
+                    <option value="All">All Faculties</option>
+                    @if(faculties != null) {
+                        foreach(var f in faculties) {
+                            <option value="@f.Name" selected="@(Context.Request.Query["facultyFilter"] == f.Name)">@f.Name</option>
+                        }
+                    }
+                </select>
             </div>
-            <button class="btn btn-sm" style="background-color: #4b3b9b; color: white; border-radius: 15px; padding: 5px 20px;">Filter ▼</button>
-        </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <input type="text" class="search-bar" placeholder="Search">
-            <button class="btn btn-purple px-4" data-bs-toggle="modal" data-bs-target="#createModal">Create Account</button>
-        </div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                @* Point 6: Search by ID - User Friendly *@
+                <div class="position-relative">
+                    <input type="text" name="searchId" class="search-bar" 
+                           placeholder="Enter ID & Press Enter..." 
+                           value="@Context.Request.Query["searchId"]">
+                    <small class="text-secondary d-block mt-1 ms-2">Search by Index or Academic ID</small>
+                </div>
+                
+                <button type="button" class="btn btn-purple px-4" data-bs-toggle="modal" data-bs-target="#createModal">Create Account</button>
+            </div>
+        </form>
 
-        @* --- ADJUSTED FOREACH SECTION --- *@
         @if (Model != null && Model.Any())
         {
             @foreach (var user in Model)
@@ -117,55 +80,81 @@
                         <p class="m-0 text-dark">Faculty: @user.Faculty</p>
                     }
                     <p class="m-0 text-dark">Degree: @user.Degree</p>
-                    <button class="btn btn-purple btn-sm" style="position: absolute; right: 20px; bottom: 20px;">Remove</button>
+                    <button class="btn btn-danger btn-sm" style="position: absolute; right: 20px; bottom: 20px; border-radius: 10px;">Remove</button>
                 </div>
             }
         }
         else
         {
             <div class="empty-state">
-                <h4>No @selectedRole accounts found.</h4>
-                <p class="text-secondary">Click "Create Account" to add the first one!</p>
+                <h4>No matching @selectedRole accounts found.</h4>
+                <p class="text-secondary">Try a different search ID or filter.</p>
             </div>
         }
     </div>
 
-    @* --- MODAL SECTION --- *@
-    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+    @* Point 8: Create Modal with Table Integration *@
+    <div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content" style="background-color: #2c2c2c; color: white; border-radius: 25px;">
                 <div class="modal-header" style="border-bottom: 1px solid #444;">
-                    <h5 class="modal-title" id="createModalLabel">Create New Account</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Create New Account</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form asp-action="CreateAccount" method="post">
+                <form asp-action="CreateAccount" asp-controller="Admin" method="post">
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" name="FullName" class="form-control shadow-none" style="background-color: #b0b0b0; border-radius: 10px;" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small">Full Name</label>
+                                <input type="text" name="FullName" class="form-control" style="background-color: #b0b0b0; border-radius: 10px;" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small">Role</label>
+                                <select name="Role" class="form-select" id="roleSelect" style="background-color: #b0b0b0; border-radius: 10px;">
+                                    <option value="Student">Student</option>
+                                    <option value="Supervisor">Supervisor</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <select name="Role" class="form-select shadow-none" style="background-color: #b0b0b0; border-radius: 10px;">
-                                <option value="Student">Student</option>
-                                <option value="Supervisor">Supervisor</option>
+                            <label class="form-label small">Email</label>
+                            <input type="email" name="Email" class="form-control" style="background-color: #b0b0b0; border-radius: 10px;" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Password</label>
+                            <input type="password" name="PasswordHash" class="form-control" style="background-color: #b0b0b0; border-radius: 10px;" required>
+                        </div>
+
+                        <div id="studentFields">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label small">Index Number</label>
+                                    <input type="text" name="IndexNumber" class="form-control" style="background-color: #b0b0b0; border-radius: 10px;">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label small">Batch</label>
+                                    <input type="text" name="Batch" class="form-control" style="background-color: #b0b0b0; border-radius: 10px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small">Faculty</label>
+                            <select name="Faculty" class="form-select" style="background-color: #b0b0b0; border-radius: 10px;">
+                                @if(faculties != null) {
+                                    foreach(var f in faculties) {
+                                        <option value="@f.Name">@f.Name</option>
+                                    }
+                                }
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" name="Email" class="form-control shadow-none" style="background-color: #b0b0b0; border-radius: 10px;" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Password</label>
-                            <input type="password" name="PasswordHash" class="form-control shadow-none" style="background-color: #b0b0b0; border-radius: 10px;" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Degree / Faculty</label>
-                            <input type="text" name="Degree" class="form-control shadow-none" style="background-color: #b0b0b0; border-radius: 10px;">
+                            <label class="form-label small">Degree/Specialization</label>
+                            <input type="text" name="Degree" class="form-control" style="background-color: #b0b0b0; border-radius: 10px;">
                         </div>
                     </div>
                     <div class="modal-footer" style="border-top: 1px solid #444;">
-                        <button type="submit" class="btn btn-purple px-5">Save Account</button>
+                        <button type="submit" class="btn btn-purple px-5 w-100">Save Account to Database</button>
                     </div>
                 </form>
             </div>
@@ -173,5 +162,16 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Simple logic to show/hide fields based on role in the modal
+        document.getElementById('roleSelect').addEventListener('change', function() {
+            const studentFields = document.getElementById('studentFields');
+            if(this.value === 'Supervisor') {
+                studentFields.style.display = 'none';
+            } else {
+                studentFields.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>

@@ -2,6 +2,8 @@
 @{
     Layout = null;
     ViewData["Title"] = "Admin Dashboard";
+    // This safety check prevents crashes if the database tables are empty
+    var faculties = (ViewBag.Faculties as IEnumerable<Projectapp.Models.Faculty>) ?? new List<Projectapp.Models.Faculty>();
 }
 
 <!DOCTYPE html>
@@ -12,67 +14,18 @@
     <title>@ViewData["Title"]</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
     <style>
-        body {
-            background-color: #121212;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .btn-purple {
-            background-color: #5e4bb6;
-            color: white;
-            border-radius: 20px;
-            transition: all 0.3s ease;
-        }
-
-            .btn-purple:hover {
-                opacity: 0.8;
-                color: white;
-            }
-
-        .project-card {
-            background-color: #2c2c2c;
-            border-radius: 20px;
-            border: none;
-            color: white;
-            margin-bottom: 20px;
-        }
-
-        /* Side Nav Styling */
-        .faculty-sidebar {
-            background-color: #b0b0b0;
-            color: black;
-            border-radius: 25px;
-            padding: 25px;
-        }
-
-        .faculty-btn {
-            background-color: #5e4bb6;
-            color: white;
-            border-radius: 12px;
-            padding: 12px;
-            text-align: left;
-            width: 100%;
-            border: none;
-            margin-bottom: 10px;
-        }
-
-        /* Filter Dropdown Styling */
-        .dropdown-menu {
-            background-color: #d1d1d1;
-            border-radius: 20px;
-            width: 280px;
-            border: none;
-            box-shadow: 0px 10px 30px rgba(0,0,0,0.5);
-            padding: 20px;
-        }
-
-        .form-select, .form-control {
-            background-color: #a0a0a0;
-            border: none;
-            border-radius: 12px;
-            color: #333;
-        }
+        body { background-color: #121212; color: white; font-family: 'Segoe UI', sans-serif; }
+        .btn-purple { background-color: #5e4bb6; color: white; border-radius: 20px; transition: all 0.3s ease; border: none; }
+        .btn-purple:hover { opacity: 0.8; color: white; }
+        .project-card { background-color: #2c2c2c; border-radius: 20px; border: none; color: white; margin-bottom: 20px; }
+        .faculty-sidebar { background-color: #b0b0b0; color: black; border-radius: 25px; padding: 25px; }
+        .faculty-btn { background-color: #5e4bb6; color: white; border-radius: 12px; padding: 12px; text-align: left; width: 100%; border: none; margin-bottom: 10px; font-weight: bold; }
+        .dropdown-menu { background-color: #d1d1d1; border-radius: 20px; width: 280px; border: none; box-shadow: 0px 10px 30px rgba(0,0,0,0.5); padding: 20px; }
+        .form-select, .form-control { background-color: #a0a0a0; border: none; border-radius: 12px; color: #333; }
+        .status-btn { border-radius: 15px; background-color: #3d3d3d; color: white; border: none; padding: 5px 20px; text-decoration: none; font-size: 0.85rem; }
+        .status-btn.active { background-color: #5e4bb6; }
+        .area-link { display: block; color: #333; text-decoration: none; padding: 4px 0; border-bottom: 1px dashed #999; }
+        .area-link:hover { color: #5e4bb6; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -94,37 +47,32 @@
 
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div class="d-flex gap-2">
-                        <button class="btn btn-purple btn-sm px-4">All</button>
-                        <button class="btn btn-sm px-3" style="background-color: #3d3d3d; color: white; border-radius: 15px;">Unmatched</button>
-                        <button class="btn btn-sm px-3" style="background-color: #3d3d3d; color: white; border-radius: 15px;">Matched</button>
+                        <a href="@Url.Action("Dashboard", new { status = "All" })" class="status-btn @(Context.Request.Query["status"] == "All" || string.IsNullOrEmpty(Context.Request.Query["status"]) ? "active" : "")">All</a>
+                        <a href="@Url.Action("Dashboard", new { status = "Unmatched" })" class="status-btn @(Context.Request.Query["status"] == "Unmatched" ? "active" : "")">Unmatched</a>
+                        <a href="@Url.Action("Dashboard", new { status = "Matched" })" class="status-btn @(Context.Request.Query["status"] == "Matched" ? "active" : "")">Matched</a>
                     </div>
 
                     <div class="dropdown">
-                        <button class="btn btn-purple btn-sm px-4 dropdown-toggle" type="button" id="filterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-purple btn-sm px-4 dropdown-toggle" type="button" id="filterBtn" data-bs-toggle="dropdown">
                             Filter
                         </button>
                         <div class="dropdown-menu dropdown-menu-end" aria-labelledby="filterBtn">
-                            <form asp-action="Dashboard" asp-controller="Admin" method="get">
+                            <form method="get" action="/Admin/Dashboard">
                                 <h6 class="fw-bold mb-3">Filter by</h6>
 
                                 <label class="small fw-bold mb-1">Sort By</label>
                                 <select name="sortBy" class="form-select mb-3">
-                                    <option value="date">Date</option>
-                                    <option value="name">Name</option>
+                                    <option value="newest">Newest First</option>
+                                    <option value="name">Project Name (A-Z)</option>
+                                    <option value="faculty">Faculty</option>
                                 </select>
 
                                 <label class="small fw-bold mb-1">Faculty</label>
-                                <select name="faculty" id="facultySelect" class="form-select mb-3">
-                                    <option value="All">All</option>
-                                    <option value="Computing">Computing</option>
-                                    <option value="Business">Business</option>
-                                    <option value="Engineering">Engineering</option>
-                                    <option value="Science">Science</option>
-                                </select>
-
-                                <label class="small fw-bold mb-1">Subject</label>
-                                <select name="subject" id="subjectSelect" class="form-select mb-4">
-                                    <option value="">-</option>
+                                <select name="facultyFilter" class="form-select mb-4">
+                                    <option value="All">All Faculties</option>
+                                    @foreach(var f in faculties) {
+                                        <option value="@f.Name">@f.Name</option>
+                                    }
                                 </select>
 
                                 <button type="submit" class="btn btn-purple w-100 fw-bold">Apply Filter</button>
@@ -143,8 +91,8 @@
                                     <div>
                                         <h4 class="fw-bold mb-1">@project.Title</h4>
                                         <p class="text-secondary mb-2">Group: @project.GroupName | Category: @project.Category</p>
-                                        <span class="badge @(project.Status == "Matched" ? "bg-success" : "bg-warning text-dark")" style="border-radius: 8px; padding: 6px 12px;">
-                                            @project.Status
+                                        <span class="badge @(project.SupervisorId != null ? "bg-success" : "bg-warning text-dark")">
+                                            @(project.SupervisorId != null ? "Matched ✓" : "Unmatched")
                                         </span>
                                     </div>
                                     <div class="text-end">
@@ -167,67 +115,61 @@
 
             <div class="col-lg-4">
                 <div class="faculty-sidebar">
-                    <h4 class="fw-bold mb-4">Faculty</h4>
-
+                    <h4 class="fw-bold mb-4">Faculty Management</h4>
                     <div class="d-grid">
-                        <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#busList">
-                            Business <span class="float-end">▼</span>
-                        </button>
-                        <div class="collapse mb-3 ps-3 text-dark small" id="busList">
-                            • Business Analytics<br>• Tourism & Events<br>• Accounting & Finance<br>• HR Management
-                        </div>
-
-                        <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#compList">
-                            Computing <span class="float-end">▼</span>
-                        </button>
-                        <div class="collapse mb-3 ps-3 text-dark small" id="compList">
-                            • Computer Science<br>• Software Engineering<br>• Data Science<br>• Cyber Security
-                        </div>
-
-                        <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#engList">
-                            Engineering <span class="float-end">▼</span>
-                        </button>
-                        <div class="collapse mb-3 ps-3 text-dark small" id="engList">
-                            • Mechatronic Engineering<br>• Electrical Engineering<br>• Interior Design
-                        </div>
-
-                        <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#sciList">
-                            Science <span class="float-end">▼</span>
-                        </button>
-                        <div class="collapse mb-3 ps-3 text-dark small" id="sciList">
-                            • Psychology<br>• Biomedical Science
-                        </div>
+                        @foreach(var fac in faculties) {
+                            <button class="faculty-btn" type="button" data-bs-toggle="collapse" data-bs-target="#fac-@fac.Id">
+                                @fac.Name <span class="float-end">▼</span>
+                            </button>
+                            <div class="collapse mb-3 ps-2" id="fac-@fac.Id">
+                                @if(fac.ResearchAreas != null && fac.ResearchAreas.Any()) {
+                                    foreach(var area in fac.ResearchAreas) {
+                                        <a href="javascript:void(0)" class="area-link small" onclick="openKeywordModal(@area.Id, '@area.Name')">
+                                            • @area.Name
+                                        </a>
+                                    }
+                                } else {
+                                    <p class="small text-muted ps-2">No Research Areas found.</p>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    @* KEYWORD MODAL *@
+    <div class="modal fade" id="keywordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-dark" style="border-radius: 20px;">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="modalTitle">Add Keyword</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/Admin/AddKeyword" method="post">
+                    <div class="modal-body">
+                        <input type="hidden" name="researchAreaId" id="modalAreaId" />
+                        <label class="small fw-bold mb-2">Keyword Name</label>
+                        <input type="text" name="keywordName" class="form-control mb-3" placeholder="e.g. IoT Architecture" required style="background-color: #eee;"/>
+                        <p class="text-muted small">This keyword will be stored in the MasterKeywords table linked to this Research Area.</p>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="submit" class="btn btn-purple px-4">Save Keyword</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const subjects = {
-            'Computing': ['Information Technology', 'Computer Science', 'Software Engineering', 'Data Science', 'Artificial Intelligence'],
-            'Business': ['Business Analytics', 'Accounting and Finance', 'Project Management', 'Human Resource Management'],
-            'Engineering': ['Mechatronic Engineering', 'Electrical Engineering', 'Interior Design'],
-            'Science': ['Psychology', 'Biomedical Science']
-        };
-
-        const facultySelect = document.getElementById('facultySelect');
-        const subjectSelect = document.getElementById('subjectSelect');
-
-        facultySelect.addEventListener('change', function() {
-            const selected = this.value;
-            subjectSelect.innerHTML = '<option value="">-</option>';
-
-            if (subjects[selected]) {
-                subjects[selected].forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s;
-                    opt.innerHTML = s;
-                    subjectSelect.appendChild(opt);
-                });
-            }
-        });
+        function openKeywordModal(id, name) {
+            document.getElementById('modalAreaId').value = id;
+            document.getElementById('modalTitle').innerText = "Keywords for: " + name;
+            var myModal = new bootstrap.Modal(document.getElementById('keywordModal'));
+            myModal.show();
+        }
     </script>
 </body>
 </html>
