@@ -13,20 +13,24 @@ namespace Projectapp.Models
         [Required]
         public string Title { get; set; }
 
-        public string? GroupName { get; set; } // For Group projects
+        public string? GroupName { get; set; }
 
-        public string Type { get; set; } // Individual or Group
+        // This is the field the controller will now use
+        public string ProjectType { get; set; }
 
-        public string? TeamMembers { get; set; } // Comma-separated Student IDs
+        // Keeping 'Type' for backward compatibility if needed, 
+        // but we will primarily use ProjectType
+        public string? Type { get; set; }
+
+        public string? TeamMembers { get; set; }
 
         public string Faculty { get; set; }
 
         public int ResearchAreaId { get; set; }
 
         [ForeignKey("ResearchAreaId")]
-        public virtual ResearchArea ResearchArea { get; set; }
+        public virtual ResearchArea? ResearchArea { get; set; }
 
-        // Smart Category helper
         [NotMapped]
         public string Category => ResearchArea?.Name ?? "General";
 
@@ -38,10 +42,10 @@ namespace Projectapp.Models
 
         public DateTime DateCreated { get; set; } = DateTime.Now;
 
-        public string Status { get; set; } = "Pending"; // Pending, Accepted
+        public string Status { get; set; } = "Pending";
 
-        public string StudentId { get; set; } // Linked to ApplicationUser.Id
+        public string StudentId { get; set; }
 
-        public string? SupervisorId { get; set; } // Hidden until Accepted
+        public string? SupervisorId { get; set; }
     }
 }

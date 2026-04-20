@@ -3,17 +3,33 @@
     Layout = null;
     var student = ViewBag.Student as Projectapp.Models.ApplicationUser;
     var faculties = ViewBag.Faculties as List<Projectapp.Models.Faculty>;
+    var researchAreas = ViewBag.ResearchAreas as List<Projectapp.Models.ResearchArea>;
+    var keywords = ViewBag.Keywords as List<Projectapp.Models.MasterKeyword>;
 }
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard | ProjectApp</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --purple-primary: #6a5acd; --bg-dark: #0f0f12; --card-bg: #1a1a20; }
-        body { background-color: var(--bg-dark); color: #fff; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        :root { 
+            --purple-primary: #6a5acd; 
+            --bg-dark: #0f0f12; 
+            --card-bg: #1a1a20; 
+            --input-bg: #25252d;
+        }
         
+        body { 
+            background-color: var(--bg-dark); 
+            color: #fff; 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+        }
+
         .sidebar { 
             background: var(--card-bg); 
             border-right: 1px solid #333; 
@@ -22,32 +38,68 @@
             padding: 25px; 
             width: 320px; 
             overflow-y: auto; 
+            z-index: 1000;
         }
         
-        /* Force high-visibility white for account labels */
-        .sidebar label, .sidebar .small-label, .sidebar h4 {
-            color: #ffffff !important;
-            font-weight: 600;
-            display: block;
+        .sidebar label, .sidebar h4 { 
+            color: #ffffff !important; 
+            font-weight: 600; 
+            display: block; 
             margin-bottom: 5px;
             font-size: 0.85rem;
         }
 
-        .main-content { margin-left: 340px; padding: 40px; }
-        .glass-card { background: var(--card-bg); border: 1px solid #2d2d35; border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-        
-        .btn-purple { background: var(--purple-primary); color: white; border-radius: 8px; border: none; padding: 10px 20px; font-weight: 600; text-decoration: none; }
+        .main-content { 
+            margin-left: 340px; 
+            padding: 40px; 
+        }
+
+        .glass-card { 
+            background: var(--card-bg); 
+            border: 1px solid #2d2d35; 
+            border-radius: 16px; 
+            padding: 24px; 
+            margin-bottom: 20px; 
+        }
+
+        .btn-purple { 
+            background: var(--purple-primary); 
+            color: white; 
+            border-radius: 8px; 
+            border: none; 
+            padding: 10px 20px; 
+            font-weight: 600; 
+        }
         .btn-purple:hover { background: #5849ab; color: white; }
 
         .form-control, .form-select { 
-            background: #25252d; 
+            background: var(--input-bg); 
             border: 1px solid #444; 
-            color: #ffffff; 
-            margin-bottom: 12px;
+            color: #ffffff !important; 
+            margin-bottom: 15px;
         }
-        .form-control:focus { background: #2a2a35; color: #fff; border-color: var(--purple-primary); box-shadow: none; }
 
-        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+        .keyword-selector { 
+            max-height: 160px; 
+            overflow-y: auto; 
+            background: var(--input-bg); 
+            padding: 15px; 
+            border-radius: 8px; 
+            border: 1px solid #444; 
+            margin-bottom: 15px;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--purple-primary);
+            border-color: var(--purple-primary);
+        }
+
+        .status-badge { 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 0.75rem; 
+            font-weight: bold; 
+        }
         .bg-pending { background: rgba(255, 193, 7, 0.1); color: #ffc107; border: 1px solid #ffc107; }
         .bg-accepted { background: rgba(40, 167, 69, 0.1); color: #28a745; border: 1px solid #28a745; }
     </style>
@@ -56,7 +108,6 @@
 
     <div class="sidebar">
         <h4 class="mb-4" style="color: var(--purple-primary);">My Account</h4>
-        
         <form asp-action="UpdateProfile" asp-controller="Student" method="post">
             <input type="hidden" name="Id" value="@student.Id" />
             
@@ -66,11 +117,7 @@
             <div class="row g-2">
                 <div class="col-6">
                     <label>Faculty</label>
-                    <select name="Faculty" class="form-select">
-                        @foreach(var f in faculties) {
-                            <option value="@f.Name" selected="@(f.Name == student.Faculty)">@f.Name</option>
-                        }
-                    </select>
+                    <input type="text" class="form-control" value="@student.Faculty" readonly />
                 </div>
                 <div class="col-6">
                     <label>Batch</label>
@@ -78,25 +125,8 @@
                 </div>
             </div>
 
-            <label>Degree</label>
+            <label>Degree Program</label>
             <input type="text" name="Degree" class="form-control" value="@student.Degree" />
-
-            <label>Address</label>
-            <input type="text" name="Address" class="form-control" value="@student.Address" />
-
-            <div class="row g-2">
-                <div class="col-6">
-                    <label>Gender</label>
-                    <select name="Gender" class="form-select">
-                        <option value="Male" selected="@(student.Gender == "Male")">Male</option>
-                        <option value="Female" selected="@(student.Gender == "Female")">Female</option>
-                    </select>
-                </div>
-                <div class="col-6">
-                    <label>Birthday</label>
-                    <input type="date" name="Birthday" class="form-control" value="@(student.Birthday?.ToString("yyyy-MM-dd"))" />
-                </div>
-            </div>
 
             <div class="row g-2">
                 <div class="col-6">
@@ -109,100 +139,186 @@
                 </div>
             </div>
 
-            <label>Email</label>
+            <div class="row g-2">
+                <div class="col-12">
+                    <label>Birthday</label>
+                    <input type="date" name="Birthday" class="form-control" value="@(student.Birthday?.ToString("yyyy-MM-dd"))" />
+                </div>
+            </div>
+
+            <label>Residential Address</label>
+            <input type="text" name="Address" class="form-control" value="@student.Address" placeholder="Enter your address" />
+
+            <label>Email Address</label>
             <input type="email" name="Email" class="form-control" value="@student.Email" />
 
-            <label>Password</label>
-            <input type="password" name="PasswordHash" class="form-control" placeholder="Update Password" />
+            <label>Update Password</label>
+            <input type="password" name="PasswordHash" class="form-control" placeholder="Leave blank to keep current" />
 
-            <button type="submit" class="btn btn-purple w-100 mt-3">Update Profile</button>
+            <button type="submit" class="btn btn-purple w-100 mt-2">Save Profile Changes</button>
         </form>
     </div>
 
     <div class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-5">
-            <h2 class="fw-bold">Student Dashboard</h2>
-            <button class="btn btn-purple" data-bs-toggle="modal" data-bs-target="#newProjectModal">Launch New Project</button>
+            <div>
+                <h2 class="fw-bold mb-1">Student Dashboard</h2>
+                <p class="text-muted">Manage your research proposals</p>
+            </div>
+            <button class="btn btn-purple px-4" data-bs-toggle="modal" data-bs-target="#newProjectModal">+ New Project</button>
         </div>
 
-        @if (!Model.Any()) {
+        @if (Model == null || !Model.Any()) {
             <div class="glass-card text-center py-5">
-                <p class="text-muted">No projects found. Start by creating a new proposal.</p>
+                <p class="text-muted">No projects submitted yet.</p>
             </div>
-        }
-
-        @foreach (var proj in Model) {
-            <div class="glass-card d-flex">
-                <div class="col-md-3 border-end border-secondary pe-4 me-4">
-                    <h6 class="small text-uppercase fw-bold" style="color: var(--purple-primary);">Supervisor</h6>
-                    @if (proj.Status == "Accepted" && !string.IsNullOrEmpty(proj.SupervisorId)) {
-                        <p class="mb-0 fw-bold text-success">Assigned ✓</p>
-                    } else {
-                        <p class="text-muted italic small">Waiting for approval</p>
-                    }
-                </div>
-                
-                <div class="col-md-9">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
+        } else {
+            @foreach (var proj in Model) {
+                <div class="glass-card d-flex">
+                    <div class="col-md-3 border-end border-secondary pe-4 me-4">
+                        <h6 class="small text-uppercase fw-bold mb-2" style="color: var(--purple-primary);">Information</h6>
+                        <p class="mb-1 small">Type: <strong>@proj.ProjectType</strong></p>
+                        @if(proj.ProjectType == "Group") {
+                            <p class="mb-1 small text-info">Group: @proj.GroupName</p>
+                        }
+                        <p class="@(proj.Status == "Accepted" ? "text-success fw-bold" : "text-muted small")">
+                            @(proj.Status == "Accepted" ? "Supervisor Assigned ✓" : "Status: Pending")
+                        </p>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="d-flex justify-content-between">
                             <h4 class="fw-bold mb-1">@proj.Title</h4>
-                            <p class="text-muted small">@proj.ResearchArea?.Name | @proj.TechnicalStack</p>
+                            <span class="status-badge @(proj.Status == "Accepted" ? "bg-accepted" : "bg-pending")">@proj.Status</span>
                         </div>
-                        <span class="status-badge @(proj.Status == "Accepted" ? "bg-accepted" : "bg-pending")">@proj.Status</span>
-                    </div>
-                    <p class="text-white-50 mt-2">@proj.Abstract</p>
-                    <div class="mt-3">
-                        <a href="@Url.Action("ProjectDetails", "Student", new { id = proj.Id })" class="btn btn-sm btn-outline-light">View Details</a>
+                        <p class="text-white-50 mt-2">@proj.Abstract</p>
                     </div>
                 </div>
-            </div>
+            }
         }
     </div>
 
-    <div class="modal fade" id="newProjectModal" tabindex="-1">
+    <div class="modal fade" id="newProjectModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0" style="background: var(--card-bg); color: #fff;">
                 <div class="modal-body p-5">
-                    <h3 class="fw-bold mb-4">New Project Proposal</h3>
-                    <form asp-action="ManageProject" asp-controller="Student" method="post" enctype="multipart/form-data">
+                    <h3 class="fw-bold mb-4">Submit New Proposal</h3>
+                    
+                    <form id="projectForm" asp-action="ManageProject" asp-controller="Student" method="post" enctype="multipart/form-data">
                         <input type="hidden" name="StudentId" value="@student.Id" />
                         
                         <div class="mb-3">
                             <label class="text-white">Project Title</label>
-                            <input type="text" name="Title" class="form-control" required />
+                            <input type="text" name="Title" class="form-control" required placeholder="Project Name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-white mb-2">Project Format</label>
+                            <div class="d-flex gap-4 p-2 border border-secondary rounded" style="background: #25252d;">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ProjectType" id="typeIndividual" value="Individual" checked onchange="toggleTeamSection()">
+                                    <label class="form-check-label text-white" for="typeIndividual">Individual</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="ProjectType" id="typeGroup" value="Group" onchange="toggleTeamSection()">
+                                    <label class="form-check-label text-white" for="typeGroup">Group</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="teamSection" style="display: none;" class="mb-3">
+                            <div class="mb-3">
+                                <label class="text-white">Group Name / Team ID</label>
+                                <input type="text" name="GroupName" class="form-control" placeholder="e.g. Team Alpha" />
+                            </div>
+                            <label class="text-white">Additional Team Member Student IDs</label>
+                            <div id="memberContainer">
+                                <div class="input-group mb-2">
+                                    <input type="text" name="memberIds" class="form-control mb-0" placeholder="e.g. ST1001" />
+                                    <button type="button" class="btn btn-outline-info" onclick="addMemberField()">+</button>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="text-white">Research Area</label>
-                                <select name="ResearchAreaId" class="form-select">
-                                    @foreach(var ra in (ViewBag.ResearchAreas as List<Projectapp.Models.ResearchArea>)) {
-                                        <option value="@ra.Id">@ra.Name</option>
+                                <select name="ResearchAreaId" class="form-select" required>
+                                    @if(researchAreas != null) {
+                                        @foreach(var ra in researchAreas) {
+                                            <option value="@ra.Id">@ra.Name</option>
+                                        }
                                     }
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="text-white">Tech Stack</label>
-                                <input type="text" name="TechnicalStack" class="form-control" />
+                                <input type="text" name="TechnicalStack" class="form-control" placeholder="C#, React, etc." />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-white mb-2">Project Alignment Keywords (Mandatory)</label>
+                            <div class="keyword-selector">
+                                @if(keywords != null) {
+                                    @foreach(var kw in keywords) {
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" name="selectedKeywords" value="@kw.Id" id="kw-@kw.Id">
+                                            <label class="form-check-label text-white small" for="kw-@kw.Id">@kw.Name</label>
+                                        </div>
+                                    }
+                                }
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label class="text-white">Abstract</label>
-                            <textarea name="Abstract" class="form-control" rows="3"></textarea>
+                            <textarea name="Abstract" class="form-control" rows="3" required placeholder="Summary of your project..."></textarea>
                         </div>
 
                         <div class="mb-4">
                             <label class="text-white">Upload Proposal (PDF/DOC)</label>
-                            <input type="file" name="proposalFile" class="form-control" />
+                            <input type="file" name="proposalFile" class="form-control" required />
                         </div>
 
-                        <button type="submit" class="btn btn-purple w-100 py-3">Submit for Review</button>
+                        <button type="submit" class="btn btn-purple w-100 py-3 fw-bold">Submit for Review</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        function toggleTeamSection() {
+            const teamSection = document.getElementById('teamSection');
+            const isGroup = document.getElementById('typeGroup').checked;
+            teamSection.style.display = isGroup ? 'block' : 'none';
+            
+            if(!isGroup) {
+                const inputs = teamSection.querySelectorAll('input');
+                inputs.forEach(i => i.value = '');
+            }
+        }
+
+        function addMemberField() {
+            const container = document.getElementById('memberContainer');
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" name="memberIds" class="form-control mb-0" placeholder="Enter Student ID" />
+                <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">-</button>
+            `;
+            container.appendChild(div);
+        }
+
+        document.getElementById('projectForm').onsubmit = function(e) {
+            const checked = document.querySelectorAll('input[name="selectedKeywords"]:checked');
+            if (checked.length === 0) {
+                alert("Please select at least one keyword for project matching.");
+                e.preventDefault();
+                return false;
+            }
+        };
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
